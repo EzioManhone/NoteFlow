@@ -90,10 +90,21 @@
   }
 
   body {
+    @apply bg-background text-foreground min-h-screen;
+  }
+
+  /* Garantir que o modo escuro seja aplicado em toda a página */
+  .dark body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Cor de fundo do root no modo escuro */
+  .dark #root {
+    @apply bg-background;
   }
 }
 
+/* Restante do CSS mantido */
 .card-hover-effect {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }

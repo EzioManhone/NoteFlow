@@ -22,7 +22,7 @@ const Index: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-white to-blue-50">
+    <div className="min-h-screen flex flex-col bg-background">
       <Toaster />
       <Header onLogin={handleLogin} />
       
