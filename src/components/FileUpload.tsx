@@ -2,18 +2,16 @@
 import React, { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Check } from "lucide-react";
+import { Upload, Check, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "@/components/ui/use-toast";
+import { useDashboard } from "@/contexts/DashboardContext";
 
-interface FileUploadProps {
-  onFileUpload: (file: File) => void;
-}
-
-const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
+const FileUpload: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { processPdfFile, isProcessing } = useDashboard();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -39,12 +37,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
     }
   };
 
-  const handleFiles = (files: FileList) => {
+  const handleFiles = async (files: FileList) => {
     if (files.length > 0) {
       const file = files[0];
       if (file.type === "application/pdf") {
         setFileName(file.name);
-        onFileUpload(file);
+        
+        // Processar o arquivo usando a função do contexto
+        await processPdfFile(file);
+        
         toast({
           title: "Nota de corretagem enviada!",
           description: "Processando os dados do seu arquivo PDF...",
@@ -60,14 +61,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
   };
 
   const openFileSelector = () => {
-    // Verificar se a ref está disponível antes de chamar click()
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
   return (
-    <Card className="mb-6 border-dashed border-2 card-hover-effect">
+    <Card className="mb-6 border-dashed border-2 card-hover-effect bg-card">
       <CardContent className="p-6">
         <div
           className={`rounded-lg text-center p-6 transition-colors ${
@@ -77,7 +77,19 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          {fileName ? (
+          {isProcessing ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center"
+            >
+              <div className="bg-primary/10 rounded-full p-3 mb-3">
+                <Loader2 className="h-6 w-6 text-primary animate-spin" />
+              </div>
+              <p className="text-lg font-medium mb-1">Processando arquivo...</p>
+              <p className="text-sm text-muted-foreground mb-3">Lendo e analisando a nota de corretagem</p>
+            </motion.div>
+          ) : fileName ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

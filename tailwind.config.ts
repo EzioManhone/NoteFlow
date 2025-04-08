@@ -19,6 +19,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				inter: ['Inter', 'sans-serif'],
+				manrope: ['Manrope', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -64,11 +68,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				noteflow: {
-					primary: '#4F46E5',
-					secondary: '#8B5CF6',
+					primary: '#4361EE',
+					secondary: '#4895EF',
 					light: '#EEF2FF',
 					dark: '#1E293B',
-					green: '#3DEB91' // Adicionando a cor verde do logo
+					green: '#4CC9F0'
 				}
 			},
 			borderRadius: {

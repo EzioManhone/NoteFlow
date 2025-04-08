@@ -8,15 +8,16 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import React from "react";
+import { DashboardProvider } from "./contexts/DashboardContext";
 
 // Create a client
 const queryClient = new QueryClient();
 
 const App: React.FC = () => {
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <DashboardProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -28,9 +29,9 @@ const App: React.FC = () => {
               </Routes>
             </BrowserRouter>
           </TooltipProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </React.StrictMode>
+        </DashboardProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 };
 

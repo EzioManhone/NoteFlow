@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import Header from "@/components/Header";
 import FileUpload from "@/components/FileUpload";
 import Dashboard from "@/components/Dashboard";
@@ -8,23 +8,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { motion } from "framer-motion";
 
 const Index: React.FC = () => {
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-
-  const handleLogin = () => {
-    // Mock Facebook login - would integrate with Facebook SDK in production
-    alert("Login com Facebook simulado - aqui você integraria o Facebook SDK");
-  };
-
-  const handleFileUpload = (file: File) => {
-    setPdfFile(file);
-    // In a real app, this would send the file to the server for processing
-    console.log("File uploaded:", file.name);
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Toaster />
-      <Header onLogin={handleLogin} />
+      <Header onLogin={() => {}} />
       
       <main className="flex-grow container mx-auto px-4">
         <motion.div
@@ -42,7 +29,7 @@ const Index: React.FC = () => {
           </p>
         </motion.div>
 
-        <FileUpload onFileUpload={handleFileUpload} />
+        <FileUpload />
         <Dashboard />
       </main>
 

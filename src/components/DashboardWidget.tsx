@@ -3,16 +3,16 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
 
-interface WidgetData {
-  id: number;
-  name: string;
-  content: string;
+interface DashboardWidgetProps {
+  title: string;
   icon?: React.ReactNode;
+  children: React.ReactNode;
 }
 
-const DashboardWidget: React.FC<{ widget: WidgetData; isActive: boolean }> = ({
-  widget,
-  isActive,
+const DashboardWidget: React.FC<DashboardWidgetProps> = ({
+  title,
+  icon,
+  children
 }) => {
   return (
     <motion.div
@@ -21,22 +21,15 @@ const DashboardWidget: React.FC<{ widget: WidgetData; isActive: boolean }> = ({
       transition={{ duration: 0.3 }}
       className="h-full"
     >
-      <Card className={`h-full ${isActive ? "shadow-lg border-primary/20" : ""}`}>
+      <Card className="h-full shadow-md border-primary/10 bg-card">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
-            {widget.icon}
-            {widget.name}
+            {icon}
+            {title}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-gray-700">{widget.content}</div>
-          {isActive && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-xs text-muted-foreground">
-                Essa área será personalizável na versão completa
-              </p>
-            </div>
-          )}
+          {children}
         </CardContent>
       </Card>
     </motion.div>
