@@ -135,3 +135,7 @@
   color: transparent;
   background-image: linear-gradient(to right, #4F46E5, #8B5CF6);
 }
+
+.dark .gradient-text {
+  background-image: linear-gradient(to right, #3DEB91, #5EFFB1);
+}

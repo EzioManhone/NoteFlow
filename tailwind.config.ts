@@ -67,7 +67,8 @@ export default {
 					primary: '#4F46E5',
 					secondary: '#8B5CF6',
 					light: '#EEF2FF',
-					dark: '#1E293B'
+					dark: '#1E293B',
+					green: '#3DEB91' // Adicionando a cor verde do logo
 				}
 			},
 			borderRadius: {

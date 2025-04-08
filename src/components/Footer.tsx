@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, delay: 0.3 }}
-      className="mt-12 py-6 border-t"
+      className="mt-12 py-6 border-t dark:border-gray-800"
     >
       <div className="container mx-auto">
         <div className="flex flex-col items-center justify-center">
@@ -16,7 +16,7 @@ const Footer: React.FC = () => {
             Versão Beta válida por 1 mês com todas as funções liberadas
           </p>
           <p className="text-xs text-muted-foreground">
-            NoteFlow © {new Date().getFullYear()} - Todos os direitos reservados
+            NOTEFLOW © {new Date().getFullYear()} - Todos os direitos reservados
           </p>
         </div>
       </div>
