@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, Check } from "lucide-react";
@@ -13,6 +13,7 @@ interface FileUploadProps {
 const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -58,6 +59,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
     }
   };
 
+  const openFileSelector = () => {
+    // Verificar se a ref está disponível antes de chamar click()
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <Card className="mb-6 border-dashed border-2 card-hover-effect">
       <CardContent className="p-6">
@@ -80,17 +88,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
               </div>
               <p className="text-lg font-medium mb-1">Arquivo enviado com sucesso!</p>
               <p className="text-sm text-muted-foreground mb-3">{fileName}</p>
-              <div className="file-input-wrapper">
-                <Button variant="outline" size="sm">
-                  Enviar outro arquivo
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handleFileInput}
-                    className="hidden"
-                  />
-                </Button>
-              </div>
+              <Button variant="outline" size="sm" onClick={openFileSelector}>
+                Enviar outro arquivo
+              </Button>
             </motion.div>
           ) : (
             <div className="flex flex-col items-center">
@@ -103,19 +103,19 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
               <p className="text-sm text-muted-foreground mb-3">
                 ou clique para selecionar um arquivo PDF
               </p>
-              <div className="file-input-wrapper">
-                <Button>
-                  Selecionar PDF
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handleFileInput}
-                    className="hidden"
-                  />
-                </Button>
-              </div>
+              <Button onClick={openFileSelector}>
+                Selecionar PDF
+              </Button>
             </div>
           )}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="application/pdf"
+            onChange={handleFileInput}
+            className="hidden"
+            aria-label="Selecionar arquivo PDF"
+          />
         </div>
       </CardContent>
     </Card>
