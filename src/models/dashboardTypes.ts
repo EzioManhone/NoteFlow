@@ -1,5 +1,5 @@
-
 import { Operation, NotaCorretagem, Dividendo } from "@/utils/pdfParser";
+import { Cotacao } from "@/services/stockService";
 
 export interface DashboardData {
   notasCorretagem: NotaCorretagem[];
@@ -15,7 +15,13 @@ export interface DashboardData {
     quantidade: number;
     precoMedio: number;
     valorTotal: number;
+    cotacaoAtual?: number;
+    variacao?: number;
+    rentabilidade?: number;
+    ultimaAtualizacao?: string;
   }[];
+  cotacoes: Cotacao[];
+  ultimaAtualizacaoCotacoes?: string;
 }
 
 export interface WidgetConfig {

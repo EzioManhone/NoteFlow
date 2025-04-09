@@ -1,10 +1,10 @@
-
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { DashboardData, WidgetConfig, DashboardLayout } from "@/models/dashboardTypes";
 import { NotaCorretagem, Operation, parsePdfCorretagem, calcularImpostos, extrairAtivos } from "@/utils/pdfParser";
 import { BarChart3, Receipt, PiggyBank, History, Briefcase, Plus, Move } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { v4 as uuidv4 } from 'uuid';
+import { buscarCotacoes, Cotacao, ativoExisteNaB3 } from "@/services/stockService";
 
 // Contexto inicial
 const initialDashboardData: DashboardData = {
@@ -16,7 +16,8 @@ const initialDashboardData: DashboardData = {
     prejuizoAcumulado: 0
   },
   dividendos: [],
-  portfolio: []
+  portfolio: [],
+  cotacoes: []
 };
 
 // Configuração inicial de widgets
@@ -81,6 +82,8 @@ type DashboardContextType = {
   updateWidgetSize: (widgetId: string, size: { width: number, height: number }) => void;
   toggleWidgetVisibility: (widgetId: string) => void;
   saveLayout: () => void;
+  atualizarCotacoes: () => Promise<void>;
+  isLoadingCotacoes: boolean;
 };
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -101,6 +104,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activeTab, setActiveTab] = useState("resumo");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isLoadingCotacoes, setIsLoadingCotacoes] = useState(false);
 
   // Efeito para carregar o layout salvo do localStorage
   useEffect(() => {
@@ -112,7 +116,62 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.error('Erro ao carregar layout salvo:', error);
       }
     }
+    
+    // Carregar cotações iniciais
+    if (dashboardData.portfolio.length > 0) {
+      atualizarCotacoes();
+    }
   }, []);
+
+  // Função para atualizar cotações
+  const atualizarCotacoes = useCallback(async () => {
+    if (dashboardData.portfolio.length === 0) return;
+    
+    setIsLoadingCotacoes(true);
+    try {
+      const ativos = dashboardData.portfolio.map(item => item.ativo);
+      const cotacoes = await buscarCotacoes(ativos);
+      
+      setDashboardData(prev => {
+        // Atualizar portfolio com cotações
+        const portfolioAtualizado = prev.portfolio.map(item => {
+          const cotacaoItem = cotacoes.find(c => c.ativo === item.ativo);
+          if (cotacaoItem) {
+            const rentabilidade = ((cotacaoItem.preco / item.precoMedio) - 1) * 100;
+            return {
+              ...item,
+              cotacaoAtual: cotacaoItem.preco,
+              variacao: cotacaoItem.variacao,
+              rentabilidade,
+              ultimaAtualizacao: new Date().toISOString()
+            };
+          }
+          return item;
+        });
+        
+        return {
+          ...prev,
+          portfolio: portfolioAtualizado,
+          cotacoes,
+          ultimaAtualizacaoCotacoes: new Date().toISOString()
+        };
+      });
+      
+      toast({
+        title: "Cotações atualizadas",
+        description: "As cotações da carteira foram atualizadas com sucesso."
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar cotações:", error);
+      toast({
+        title: "Erro ao atualizar cotações",
+        description: "Não foi possível buscar as cotações atualizadas.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingCotacoes(false);
+    }
+  }, [dashboardData.portfolio]);
 
   // Função para processar um arquivo PDF
   const processPdfFile = async (file: File) => {
@@ -134,26 +193,78 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Extrair todas as operações
         const todasOperacoes = notasAtualizadas.flatMap(nota => nota.operacoes);
         
-        // Calcular impostos
+        // Identificar operações de day trade (mesma data, mesmo ativo, compra e venda)
+        todasOperacoes.forEach(op => {
+          // Verificar se o ativo existe na B3
+          if (!ativoExisteNaB3(op.ativo)) {
+            console.warn(`Ativo não reconhecido na B3: ${op.ativo}`);
+            // Corrigir o nome do ativo se possível
+            // Esta lógica poderia ser mais sofisticada em um sistema real
+          }
+        });
+        
+        // Calcular impostos com a lógica aprimorada
         const impostos = calcularImpostos(todasOperacoes);
         
         // Extrair ativos
         const ativos = extrairAtivos(todasOperacoes);
         
-        // Calcular portfólio
+        // Calcular portfólio com lógica de Day Trade aprimorada
         const portfolio = ativos.map(ativo => {
           const operacoesAtivo = todasOperacoes.filter(op => op.ativo === ativo);
+          
+          // Agrupar operações por data para identificar day trades
+          const operacoesPorData: Record<string, Operation[]> = {};
+          operacoesAtivo.forEach(op => {
+            if (!operacoesPorData[op.data]) {
+              operacoesPorData[op.data] = [];
+            }
+            operacoesPorData[op.data].push(op);
+          });
           
           let quantidade = 0;
           let valorTotal = 0;
           
-          operacoesAtivo.forEach(op => {
-            if (op.tipo === 'compra') {
-              quantidade += op.quantidade;
-              valorTotal += op.valor;
-            } else if (op.tipo === 'venda') {
-              quantidade -= op.quantidade;
-              valorTotal -= op.valor;
+          // Processar operações considerando day trade e swing trade
+          Object.values(operacoesPorData).forEach(opsData => {
+            const compras = opsData.filter(op => op.tipo === 'compra');
+            const vendas = opsData.filter(op => op.tipo === 'venda');
+            
+            const qtdComprada = compras.reduce((sum, op) => sum + op.quantidade, 0);
+            const qtdVendida = vendas.reduce((sum, op) => sum + op.quantidade, 0);
+            
+            const valorCompras = compras.reduce((sum, op) => sum + op.valor, 0);
+            const valorVendas = vendas.reduce((sum, op) => sum + op.valor, 0);
+            
+            // Se teve compra e venda no mesmo dia (potencial day trade)
+            if (compras.length > 0 && vendas.length > 0) {
+              const dayTradeQtd = Math.min(qtdComprada, qtdVendida);
+              
+              // Calcular preço médio das compras e vendas do dia
+              const precoMedioCompra = valorCompras / qtdComprada;
+              const precoMedioVenda = valorVendas / qtdVendida;
+              
+              // Ajustar quantidade e valor total removendo a parte de day trade
+              if (qtdComprada > qtdVendida) {
+                // Sobrou posição comprada
+                quantidade += qtdComprada - qtdVendida;
+                valorTotal += precoMedioCompra * (qtdComprada - qtdVendida);
+              } else if (qtdVendida > qtdComprada) {
+                // Sobrou posição vendida
+                quantidade -= qtdVendida - qtdComprada;
+                valorTotal -= precoMedioVenda * (qtdVendida - qtdComprada);
+              }
+              // Se qtdComprada === qtdVendida, foi 100% day trade, não impacta o portfólio
+            } else {
+              // Operação normal (só compra ou só venda no dia)
+              if (compras.length > 0) {
+                quantidade += qtdComprada;
+                valorTotal += valorCompras;
+              }
+              if (vendas.length > 0) {
+                quantidade -= qtdVendida;
+                valorTotal -= valorVendas;
+              }
             }
           });
           
@@ -172,9 +283,15 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           ativos,
           impostos,
           dividendos: prev.dividendos, // Manter dividendos existentes
-          portfolio
+          portfolio,
+          cotacoes: prev.cotacoes
         };
       });
+      
+      // Depois de processar a nota, atualizar cotações
+      setTimeout(() => {
+        atualizarCotacoes();
+      }, 500);
       
       toast({
         title: "Nota de corretagem processada",
@@ -268,7 +385,9 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     updateWidgetPosition,
     updateWidgetSize,
     toggleWidgetVisibility,
-    saveLayout
+    saveLayout,
+    atualizarCotacoes,
+    isLoadingCotacoes
   };
 
   return (
