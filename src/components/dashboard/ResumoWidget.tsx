@@ -26,6 +26,13 @@ const ResumoWidget: React.FC = () => {
   // Cores para o gráfico de pizza
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d'];
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { 
+      style: 'currency', 
+      currency: 'BRL' 
+    }).format(value);
+  };
+
   return (
     <div className="space-y-4">
       {dashboardData.portfolio.length > 0 ? (
@@ -35,10 +42,7 @@ const ResumoWidget: React.FC = () => {
               <CardContent className="p-4">
                 <h3 className="text-sm font-medium mb-2">Total Investido</h3>
                 <p className="text-2xl font-bold">
-                  {new Intl.NumberFormat('pt-BR', { 
-                    style: 'currency', 
-                    currency: 'BRL' 
-                  }).format(dashboardData.portfolio.reduce((acc, curr) => acc + curr.valorTotal, 0))}
+                  {formatCurrency(dashboardData.portfolio.reduce((acc, curr) => acc + curr.valorTotal, 0))}
                 </p>
               </CardContent>
             </Card>
@@ -58,7 +62,7 @@ const ResumoWidget: React.FC = () => {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <Card>
               <CardContent className="p-4">
                 <h3 className="text-sm font-medium mb-2">Composição da Carteira</h3>
@@ -79,10 +83,7 @@ const ResumoWidget: React.FC = () => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(Number(value))} />
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -106,12 +107,7 @@ const ResumoWidget: React.FC = () => {
                         } 
                       />
                       <Tooltip 
-                        formatter={(value) => 
-                          new Intl.NumberFormat('pt-BR', { 
-                            style: 'currency', 
-                            currency: 'BRL' 
-                          }).format(Number(value))
-                        } 
+                        formatter={(value) => formatCurrency(Number(value))} 
                       />
                       <Legend />
                       <Bar name="Valor" dataKey="value" fill="#8884d8" />

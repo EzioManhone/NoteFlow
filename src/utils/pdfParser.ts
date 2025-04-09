@@ -48,52 +48,63 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
       // Extrair nome do arquivo para simular número da nota
       const numeroNota = file.name.replace(".pdf", "");
       
-      // Dados de exemplo baseados no nome do arquivo
+      // Lista de possíveis ativos para simulação
+      const ativosPossiveis = [
+        'PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'BBDC4', 'ABEV3', 'WEGE3', 
+        'MGLU3', 'VVAR3', 'BPAC11', 'RADL3', 'B3SA3', 'RENT3', 'LREN3',
+        'JBSS3', 'VIVT4', 'ITSA4', 'COGN3', 'BRDT3', 'EGIE3', 'PRIO3',
+        'SUZB3', 'CMIG4', 'BRFS3', 'CSAN3', 'SBSP3', 'KLBN11', 'TAEE11',
+        'ELET3', 'ELET6', 'ENBR3', 'FLRY3', 'GGBR4', 'GOAU4'
+      ];
+      
+      // Gerar número aleatório entre 3 e 8 para determinar quantas operações serão geradas
+      const numOperacoes = 3 + Math.floor(Math.random() * 6);
+      
+      // Gerar operações aleatórias
+      const operacoes: Operation[] = [];
+      
+      for (let i = 0; i < numOperacoes; i++) {
+        const ativoIndex = Math.floor(Math.random() * ativosPossiveis.length);
+        const ativo = ativosPossiveis[ativoIndex];
+        const tipo = Math.random() > 0.5 ? 'compra' : 'venda';
+        const quantidade = 100 * (1 + Math.floor(Math.random() * 5));
+        const preco = 10 + Math.random() * 90;
+        const valor = quantidade * preco;
+        const dayTrade = Math.random() > 0.7; // 30% de chance de ser day trade
+        
+        operacoes.push({
+          tipo,
+          ativo,
+          quantidade,
+          preco: parseFloat(preco.toFixed(2)),
+          data: new Date().toISOString().split('T')[0],
+          valor: parseFloat(valor.toFixed(2)),
+          corretagem: parseFloat((valor * 0.0025).toFixed(2)),
+          dayTrade
+        });
+      }
+      
+      // Calcular taxas
+      const valorTotal = operacoes.reduce((acc, op) => acc + op.valor, 0);
+      const corretagem = operacoes.reduce((acc, op) => acc + op.corretagem, 0);
+      const liquidacao = parseFloat((valorTotal * 0.00025).toFixed(2));
+      const registro = parseFloat((valorTotal * 0.00005).toFixed(2));
+      
       const notaCorretagem: NotaCorretagem = {
         numero: numeroNota,
         data: new Date().toISOString().split('T')[0],
         corretora: "XP Investimentos",
-        valorTotal: 10000 + Math.random() * 5000,
-        operacoes: [
-          {
-            tipo: 'compra',
-            ativo: 'PETR4',
-            quantidade: 100,
-            preco: 28.76,
-            data: new Date().toISOString().split('T')[0],
-            valor: 2876,
-            corretagem: 10,
-            dayTrade: false
-          },
-          {
-            tipo: 'venda',
-            ativo: 'VALE3',
-            quantidade: 50,
-            preco: 68.90,
-            data: new Date().toISOString().split('T')[0],
-            valor: 3445,
-            corretagem: 10,
-            dayTrade: false
-          },
-          {
-            tipo: 'compra',
-            ativo: 'ITUB4',
-            quantidade: 200,
-            preco: 30.45,
-            data: new Date().toISOString().split('T')[0],
-            valor: 6090,
-            corretagem: 10,
-            dayTrade: true
-          }
-        ],
+        valorTotal,
+        operacoes,
         taxas: {
-          corretagem: 30,
-          liquidacao: 10.42,
-          registro: 5.21,
-          total: 45.63
+          corretagem,
+          liquidacao,
+          registro,
+          total: parseFloat((corretagem + liquidacao + registro).toFixed(2))
         }
       };
       
+      console.log("Nota de corretagem processada:", notaCorretagem);
       resolve(notaCorretagem);
     }, 1500); // Simular 1.5 segundos de processamento
   });
@@ -105,17 +116,61 @@ export const calcularImpostos = (operacoes: Operation[]): {
   swingTrade: number,
   prejuizoAcumulado: number 
 } => {
-  // Simular cálculo de impostos
+  // Separar operações por tipo
   const dayTradeOps = operacoes.filter(op => op.dayTrade);
   const swingTradeOps = operacoes.filter(op => !op.dayTrade);
   
-  // Valores simulados
+  // Calcular resultado de day trade (alíquota 20%)
+  let resultadoDayTrade = 0;
+  dayTradeOps.forEach(op => {
+    if (op.tipo === 'venda') {
+      // Assumindo que para cada venda há uma compra correspondente (simplificação)
+      const compraCorrespondente = dayTradeOps.find(
+        c => c.tipo === 'compra' && c.ativo === op.ativo && c.data === op.data
+      );
+      
+      if (compraCorrespondente) {
+        const lucro = op.valor - compraCorrespondente.valor;
+        resultadoDayTrade += lucro;
+      }
+    }
+  });
+  
+  // Calcular resultado de swing trade (alíquota 15%)
+  let resultadoSwingTrade = 0;
+  
+  // Agrupar operações swing trade por ativo
+  const ativosSwing = [...new Set(swingTradeOps.map(op => op.ativo))];
+  
+  ativosSwing.forEach(ativo => {
+    const opsAtivo = swingTradeOps.filter(op => op.ativo === ativo);
+    const vendas = opsAtivo.filter(op => op.tipo === 'venda');
+    const compras = opsAtivo.filter(op => op.tipo === 'compra');
+    
+    let qtdComprada = compras.reduce((acc, curr) => acc + curr.quantidade, 0);
+    let valorComprado = compras.reduce((acc, curr) => acc + curr.valor, 0);
+    let precoMedioCompra = qtdComprada > 0 ? valorComprado / qtdComprada : 0;
+    
+    vendas.forEach(venda => {
+      if (qtdComprada >= venda.quantidade) {
+        const custoCompra = venda.quantidade * precoMedioCompra;
+        const lucro = venda.valor - custoCompra;
+        resultadoSwingTrade += lucro;
+      }
+    });
+  });
+  
+  // Simular prejuízo acumulado (para fins de demonstração)
+  const prejuizoAcumulado = Math.max(0, -(resultadoDayTrade + resultadoSwingTrade) * 0.3);
+  
+  // Calcular imposto a pagar (simplificado)
+  const impostoDayTrade = Math.max(0, resultadoDayTrade * 0.20);
+  const impostoSwingTrade = Math.max(0, resultadoSwingTrade * 0.15);
+  
   return {
-    dayTrade: dayTradeOps.reduce((acc, op) => 
-      op.tipo === 'venda' ? acc + (op.valor * 0.20) : acc, 0),
-    swingTrade: swingTradeOps.reduce((acc, op) => 
-      op.tipo === 'venda' ? acc + (op.valor * 0.15) : acc, 0),
-    prejuizoAcumulado: Math.random() * 1000
+    dayTrade: parseFloat(impostoDayTrade.toFixed(2)),
+    swingTrade: parseFloat(impostoSwingTrade.toFixed(2)),
+    prejuizoAcumulado: parseFloat(prejuizoAcumulado.toFixed(2))
   };
 };
 
