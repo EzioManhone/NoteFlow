@@ -61,7 +61,6 @@ const correcoesPapeis: Record<string, string> = {
   'TIM': 'TIMS3',
   'SABESP': 'SBSP3',
   'RUMO': 'RAIL3',
-  'PETROBRAS BR': 'BRDT3',
   'VIBRA': 'VBBR3'
 };
 
