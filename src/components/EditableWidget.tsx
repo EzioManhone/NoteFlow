@@ -11,8 +11,8 @@ import {
   EyeOff,
   Edit,
   Check,
-  ArrowsMaximize,
-  ArrowsMinimize
+  Maximize,
+  Minimize
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -58,8 +58,8 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
           <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)}>
             {isExpanded ? 
-              <ArrowsMinimize className="h-4 w-4" /> : 
-              <ArrowsMaximize className="h-4 w-4" />
+              <Minimize className="h-4 w-4" /> : 
+              <Maximize className="h-4 w-4" />
             }
           </Button>
           <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
