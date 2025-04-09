@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { WidgetConfig, DashboardLayout } from "@/models/dashboardTypes";
 import { v4 as uuidv4 } from 'uuid';
