@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { WidgetConfig, DashboardLayout } from "@/models/dashboardTypes";
 import { v4 as uuidv4 } from 'uuid';
@@ -60,6 +61,48 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
     }));
   }, []);
 
+  const duplicateWidget = useCallback((widgetId: string) => {
+    setLayout(prev => {
+      const widgetToDuplicate = prev.widgets.find(widget => widget.id === widgetId);
+      if (!widgetToDuplicate) return prev;
+
+      const duplicatedWidget: WidgetConfig = {
+        ...widgetToDuplicate,
+        id: uuidv4(),
+        title: `${widgetToDuplicate.title} (cópia)`
+      };
+
+      return {
+        ...prev,
+        widgets: [...prev.widgets, duplicatedWidget]
+      };
+    });
+    
+    toast({
+      title: "Widget duplicado",
+      description: "O widget foi duplicado com sucesso!",
+    });
+  }, []);
+
+  const handleWidgetDrop = useCallback((widget: WidgetConfig) => {
+    // Create a new copy of the widget with a new ID
+    const newWidget: WidgetConfig = {
+      ...widget,
+      id: uuidv4(),
+      title: `${widget.title} (cópia)`
+    };
+
+    setLayout(prev => ({
+      ...prev,
+      widgets: [...prev.widgets, newWidget]
+    }));
+
+    toast({
+      title: "Widget adicionado",
+      description: "O widget foi adicionado com sucesso!",
+    });
+  }, []);
+
   const saveLayout = useCallback(() => {
     localStorage.setItem('dashboardLayout', JSON.stringify(layout));
     toast({
@@ -78,6 +121,8 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
     updateWidgetPosition,
     updateWidgetSize,
     toggleWidgetVisibility,
+    duplicateWidget,
+    handleWidgetDrop,
     saveLayout
   };
 };

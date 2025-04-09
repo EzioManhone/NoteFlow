@@ -14,7 +14,7 @@ import {
   PlusCircle, 
   Pencil, 
   Save, 
-  XCircle, 
+  XCircle,
   MoveHorizontal, 
   Eye, 
   EyeOff
@@ -36,7 +36,8 @@ const Dashboard: React.FC = () => {
     toggleEditMode, 
     addWidget,
     removeWidget, 
-    saveLayout 
+    saveLayout,
+    handleWidgetDrop
   } = useDashboard();
 
   // Renderizar o conteúdo correto baseado no tipo de widget
@@ -58,6 +59,19 @@ const Dashboard: React.FC = () => {
   };
 
   const visibleWidgets = widgets.filter(widget => widget.visible);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const widgetData = e.dataTransfer.getData("widget");
+    if (widgetData) {
+      handleWidgetDrop(JSON.parse(widgetData));
+    }
+  };
 
   return (
     <motion.div
@@ -108,7 +122,11 @@ const Dashboard: React.FC = () => {
       </div>
 
       {isEditMode ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div 
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
           {widgets.map((widget) => (
             <EditableWidget
               key={widget.id}

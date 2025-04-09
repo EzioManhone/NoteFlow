@@ -13,6 +13,15 @@ import {
   Legend,
   ResponsiveContainer
 } from "recharts";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const HistoricoWidget: React.FC = () => {
   const { dashboardData } = useDashboard();
@@ -23,6 +32,13 @@ const HistoricoWidget: React.FC = () => {
       style: 'currency', 
       currency: 'BRL' 
     }).format(value);
+  };
+  
+  // Formatar datas
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('pt-BR');
   };
   
   // Dados para gráfico de histórico de operações (simular tendência ao longo do tempo)
@@ -95,43 +111,39 @@ const HistoricoWidget: React.FC = () => {
           
           <div className="mt-4">
             <h3 className="text-lg font-medium mb-3">Histórico de Operações</h3>
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-left py-2 px-4">Data</th>
-                    <th className="text-left py-2 px-4">Nota</th>
-                    <th className="text-left py-2 px-4">Tipo</th>
-                    <th className="text-left py-2 px-4">Ativo</th>
-                    <th className="text-right py-2 px-4">Qtd</th>
-                    <th className="text-right py-2 px-4">Preço</th>
-                    <th className="text-right py-2 px-4">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {todasOperacoes.map((op, index) => (
-                    <tr key={index} className="border-t">
-                      <td className="py-2 px-4">{op.notaData}</td>
-                      <td className="py-2 px-4">{op.notaNumero}</td>
-                      <td className="py-2 px-4">
-                        <span className={`flex items-center ${op.tipo === 'compra' ? 'text-green-600' : 'text-red-600'}`}>
-                          {op.tipo === 'compra' ? (
-                            <BadgePlus className="h-4 w-4 mr-1" />
-                          ) : (
-                            <BadgeMinus className="h-4 w-4 mr-1" />
-                          )}
-                          {op.tipo === 'compra' ? 'Compra' : 'Venda'}
-                        </span>
-                      </td>
-                      <td className="py-2 px-4">{op.ativo}</td>
-                      <td className="py-2 px-4 text-right">{op.quantidade}</td>
-                      <td className="py-2 px-4 text-right">{formatCurrency(op.preco)}</td>
-                      <td className="py-2 px-4 text-right">{formatCurrency(op.valor)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Ativo</TableHead>
+                  <TableHead>Operação</TableHead>
+                  <TableHead>Quantidade</TableHead>
+                  <TableHead className="text-right">Preço</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {todasOperacoes.map((op, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{formatDate(op.notaData)}</TableCell>
+                    <TableCell>{op.ativo}</TableCell>
+                    <TableCell>
+                      <span className={`flex items-center ${op.tipo === 'compra' ? 'text-green-600' : 'text-red-600'}`}>
+                        {op.tipo === 'compra' ? (
+                          <BadgePlus className="h-4 w-4 mr-1" />
+                        ) : (
+                          <BadgeMinus className="h-4 w-4 mr-1" />
+                        )}
+                        {op.tipo === 'compra' ? 'Compra' : 'Venda'}
+                      </span>
+                    </TableCell>
+                    <TableCell>{op.quantidade}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(op.preco)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(op.valor)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </>
       ) : (

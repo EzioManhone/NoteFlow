@@ -22,6 +22,8 @@ type DashboardContextType = {
   updateWidgetPosition: (widgetId: string, position: { x: number, y: number }) => void;
   updateWidgetSize: (widgetId: string, size: { width: number, height: number }) => void;
   toggleWidgetVisibility: (widgetId: string) => void;
+  duplicateWidget: (widgetId: string) => void;
+  handleWidgetDrop: (widget: WidgetConfig) => void;
   saveLayout: () => void;
   atualizarCotacoes: () => Promise<void>;
   isLoadingCotacoes: boolean;
@@ -85,6 +87,8 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     updateWidgetPosition: widgetsManager.updateWidgetPosition,
     updateWidgetSize: widgetsManager.updateWidgetSize,
     toggleWidgetVisibility: widgetsManager.toggleWidgetVisibility,
+    duplicateWidget: widgetsManager.duplicateWidget,
+    handleWidgetDrop: widgetsManager.handleWidgetDrop,
     saveLayout: widgetsManager.saveLayout,
     atualizarCotacoes: cotacoesManager.atualizarCotacoes,
     isLoadingCotacoes: cotacoesManager.isLoadingCotacoes

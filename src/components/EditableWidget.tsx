@@ -12,7 +12,8 @@ import {
   Edit,
   Check,
   Maximize,
-  Minimize
+  Minimize,
+  Copy
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,7 +36,7 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
   children,
   onRemove
 }) => {
-  const { toggleWidgetVisibility } = useDashboard();
+  const { toggleWidgetVisibility, duplicateWidget } = useDashboard();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(widget.title);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -45,6 +46,11 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
     setIsEditing(false);
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("widget", JSON.stringify(widget));
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -52,10 +58,15 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
       transition={{ duration: 0.3 }}
       className={`${widget.visible ? "" : "opacity-50"} ${isExpanded ? "col-span-2 row-span-2" : ""}`}
       layout
+      draggable
+      onDragStart={handleDragStart}
     >
       <Card className="h-full shadow-md border-primary/10 bg-card relative group">
         {/* Barra de controle do widget */}
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+          <Button variant="ghost" size="icon" onClick={() => duplicateWidget(widget.id)}>
+            <Copy className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)}>
             {isExpanded ? 
               <Minimize className="h-4 w-4" /> : 
