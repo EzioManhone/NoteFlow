@@ -1,6 +1,6 @@
 
 import { toast } from "@/components/ui/use-toast";
-import { ativoExisteNaB3, getListaAtivosB3 } from "@/services/stockService";
+import { ativoExisteNaB3, getListaAtivosB3, corrigirNomeAtivo } from "@/services/stockService";
 
 // Tipos de dados para operações e ativos
 export interface Operation {
@@ -27,6 +27,9 @@ export interface NotaCorretagem {
   corretora: string;
   valorTotal: number;
   operacoes: Operation[];
+  resultadoDayTrade: number;
+  resultadoSwingTrade: number;
+  mes: string;
   taxas: {
     corretagem: number;
     liquidacao: number;
@@ -34,48 +37,6 @@ export interface NotaCorretagem {
     total: number;
   };
 }
-
-// Lista de padrões para corrigir nomes de ativos
-const corrigirAtivo = (ativo: string): string => {
-  // Remover espaços e normalizar para maiúsculas
-  const padronizado = ativo.trim().toUpperCase();
-  
-  // Verificar se já é um ativo válido
-  if (ativoExisteNaB3(padronizado)) return padronizado;
-  
-  // Lista de correções comuns em notas de corretagem
-  const correcoes: Record<string, string> = {
-    'PETROBRAS': 'PETR4',
-    'PETROBRAS ON': 'PETR3',
-    'PETROBRAS PN': 'PETR4',
-    'VALE': 'VALE3',
-    'VALE ON': 'VALE3',
-    'ITAU': 'ITUB4',
-    'ITAUUNIBANCO': 'ITUB4',
-    'BRADESCO': 'BBDC4',
-    'BRADESCO PN': 'BBDC4',
-    'BRADESCO ON': 'BBDC3',
-    'BANCO DO BRASIL': 'BBAS3',
-    'BB': 'BBAS3',
-    'AMBEV': 'ABEV3',
-    'MAGAZ LUIZA': 'MGLU3',
-  };
-  
-  // Tentar correção direta
-  if (correcoes[padronizado]) return correcoes[padronizado];
-  
-  // Buscar o ativo mais próximo por similaridade
-  const ativos = getListaAtivosB3();
-  for (const ativoCatalogado of ativos) {
-    // Se o ativo contém o código, retornar o código completo
-    if (padronizado.includes(ativoCatalogado.slice(0, 4))) {
-      return ativoCatalogado;
-    }
-  }
-  
-  console.warn(`Ativo não reconhecido: ${ativo}`);
-  return padronizado; // Retornar o ativo original padronizado
-};
 
 /**
  * Função para extrair dados de uma nota de corretagem em PDF
@@ -91,6 +52,11 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
       // Extrair nome do arquivo para simular número da nota
       const numeroNota = file.name.replace(".pdf", "");
       
+      // Gerar uma data de operação (simulada)
+      const hoje = new Date();
+      const dataOperacao = hoje.toISOString().split('T')[0];
+      const mesOperacao = hoje.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+      
       // Lista de possíveis ativos para simulação - usando ativos reais da B3
       const ativosPossiveis = getListaAtivosB3();
       
@@ -99,8 +65,6 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
       
       // Gerar operações aleatórias
       const operacoes: Operation[] = [];
-      
-      const dataOperacao = new Date().toISOString().split('T')[0];
       
       // Simular algumas operações de Day Trade (mesmo ativo, compra e venda no mesmo dia)
       const numDayTrades = 1 + Math.floor(Math.random() * 2); // 1 ou 2 day trades
@@ -157,6 +121,9 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
         });
       }
       
+      // Calcular resultados de Day Trade e Swing Trade
+      const { resultadoDayTrade, resultadoSwingTrade } = calcularResultadosPorTipo(operacoes);
+      
       // Calcular taxas
       const valorTotal = operacoes.reduce((acc, op) => acc + op.valor, 0);
       const corretagem = operacoes.reduce((acc, op) => acc + op.corretagem, 0);
@@ -169,6 +136,9 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
         corretora: "XP Investimentos",
         valorTotal,
         operacoes,
+        resultadoDayTrade,
+        resultadoSwingTrade,
+        mes: mesOperacao,
         taxas: {
           corretagem,
           liquidacao,
@@ -181,6 +151,58 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
       resolve(notaCorretagem);
     }, 1500); // Simular 1.5 segundos de processamento
   });
+};
+
+// Calcular resultados por tipo de operação (Day Trade e Swing Trade)
+export const calcularResultadosPorTipo = (operacoes: Operation[]): {
+  resultadoDayTrade: number;
+  resultadoSwingTrade: number;
+} => {
+  // Separar operações por tipo
+  const dayTrades = operacoes.filter(op => op.dayTrade);
+  const swingTrades = operacoes.filter(op => !op.dayTrade);
+  
+  // Calcular resultado de Day Trade
+  let resultadoDayTrade = 0;
+  
+  // Agrupar Day Trades por ativo
+  const dayTradesPorAtivo: Record<string, Operation[]> = {};
+  dayTrades.forEach(op => {
+    if (!dayTradesPorAtivo[op.ativo]) {
+      dayTradesPorAtivo[op.ativo] = [];
+    }
+    dayTradesPorAtivo[op.ativo].push(op);
+  });
+  
+  // Calcular resultado para cada ativo
+  Object.values(dayTradesPorAtivo).forEach(opsAtivo => {
+    const compras = opsAtivo.filter(op => op.tipo === 'compra');
+    const vendas = opsAtivo.filter(op => op.tipo === 'venda');
+    
+    const valorCompras = compras.reduce((acc, op) => acc + op.valor, 0);
+    const valorVendas = vendas.reduce((acc, op) => acc + op.valor, 0);
+    
+    // Resultado é venda - compra
+    resultadoDayTrade += valorVendas - valorCompras;
+  });
+  
+  // Calcular resultado de Swing Trade
+  let resultadoSwingTrade = 0;
+  
+  // Calcular vendas e compras
+  const comprasSwing = swingTrades.filter(op => op.tipo === 'compra');
+  const vendasSwing = swingTrades.filter(op => op.tipo === 'venda');
+  
+  const valorComprasSwing = comprasSwing.reduce((acc, op) => acc + op.valor, 0);
+  const valorVendasSwing = vendasSwing.reduce((acc, op) => acc + op.valor, 0);
+  
+  // Resultado simples (em um sistema real, seria baseado no preço médio)
+  resultadoSwingTrade = valorVendasSwing - valorComprasSwing;
+  
+  return {
+    resultadoDayTrade: parseFloat(resultadoDayTrade.toFixed(2)),
+    resultadoSwingTrade: parseFloat(resultadoSwingTrade.toFixed(2))
+  };
 };
 
 // Calcular impostos conforme regras brasileiras
@@ -275,6 +297,6 @@ export const calcularImpostos = (operacoes: Operation[]): {
 // Extrair lista de ativos únicos das operações
 export const extrairAtivos = (operacoes: Operation[]): string[] => {
   // Corrigir nomes de ativos antes de extrair lista única
-  const ativosCorrigidos = operacoes.map(op => corrigirAtivo(op.ativo));
+  const ativosCorrigidos = operacoes.map(op => corrigirNomeAtivo(op.ativo));
   return [...new Set(ativosCorrigidos)];
 };

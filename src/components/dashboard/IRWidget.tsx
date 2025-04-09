@@ -2,11 +2,11 @@
 import React from "react";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Receipt, AlertTriangle, ArrowDown } from "lucide-react";
+import { Receipt, AlertTriangle, ArrowDown, Calendar, BadgeDollarSign } from "lucide-react";
 
 const IRWidget: React.FC = () => {
   const { dashboardData } = useDashboard();
-  const { impostos } = dashboardData;
+  const { impostos, resultadoMensal } = dashboardData;
 
   // Calcular valor total devido
   const totalDevido = impostos.dayTrade + impostos.swingTrade;
@@ -82,6 +82,33 @@ const IRWidget: React.FC = () => {
             </Card>
           </div>
           
+          {/* Resultados Mensais */}
+          <div className="mt-4">
+            <h3 className="text-lg font-medium mb-3 flex items-center">
+              <Calendar className="w-5 h-5 mr-2" /> 
+              Resultado Mensal ({resultadoMensal.mes || 'N/A'})
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <Card className={resultadoMensal.dayTrade >= 0 ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"}>
+                <CardContent className="p-4">
+                  <h3 className="text-sm font-medium mb-2">Day Trade</h3>
+                  <p className={`text-2xl font-bold ${resultadoMensal.dayTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {formatCurrency(resultadoMensal.dayTrade)}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className={resultadoMensal.swingTrade >= 0 ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"}>
+                <CardContent className="p-4">
+                  <h3 className="text-sm font-medium mb-2">Swing Trade</h3>
+                  <p className={`text-2xl font-bold ${resultadoMensal.swingTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {formatCurrency(resultadoMensal.swingTrade)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          
           {totalDevido > 0 && (
             <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
               <CardContent className="p-4">
@@ -102,7 +129,10 @@ const IRWidget: React.FC = () => {
           )}
           
           <div className="mt-4">
-            <h3 className="text-lg font-medium mb-3">Suas Notas de Corretagem</h3>
+            <h3 className="text-lg font-medium mb-3 flex items-center">
+              <BadgeDollarSign className="w-5 h-5 mr-2" />
+              Suas Notas de Corretagem
+            </h3>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted">
@@ -111,6 +141,8 @@ const IRWidget: React.FC = () => {
                     <th className="text-left py-2 px-4">Data</th>
                     <th className="text-left py-2 px-4">Corretora</th>
                     <th className="text-right py-2 px-4">Valor Total</th>
+                    <th className="text-right py-2 px-4">Day Trade</th>
+                    <th className="text-right py-2 px-4">Swing Trade</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -120,6 +152,12 @@ const IRWidget: React.FC = () => {
                       <td className="py-2 px-4">{nota.data}</td>
                       <td className="py-2 px-4">{nota.corretora}</td>
                       <td className="py-2 px-4 text-right">{formatCurrency(nota.valorTotal)}</td>
+                      <td className={`py-2 px-4 text-right ${nota.resultadoDayTrade >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(nota.resultadoDayTrade)}
+                      </td>
+                      <td className={`py-2 px-4 text-right ${nota.resultadoSwingTrade >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(nota.resultadoSwingTrade)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

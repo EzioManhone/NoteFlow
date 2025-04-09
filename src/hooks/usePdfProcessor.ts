@@ -1,8 +1,8 @@
 
 import { useState, useCallback } from "react";
 import { DashboardData } from "@/models/dashboardTypes";
-import { parsePdfCorretagem, calcularImpostos, extrairAtivos } from "@/utils/pdfParser";
-import { ativoExisteNaB3 } from "@/services/stockService";
+import { parsePdfCorretagem, calcularImpostos, extrairAtivos, calcularResultadosPorTipo } from "@/utils/pdfParser";
+import { corrigirNomeAtivo } from "@/services/stockService";
 import { toast } from "@/components/ui/use-toast";
 
 export const usePdfProcessor = (
@@ -31,14 +31,9 @@ export const usePdfProcessor = (
         // Extrair todas as operações
         const todasOperacoes = notasAtualizadas.flatMap(nota => nota.operacoes);
         
-        // Identificar operações de day trade (mesma data, mesmo ativo, compra e venda)
+        // Corrigir nomes de ativos nas operações
         todasOperacoes.forEach(op => {
-          // Verificar se o ativo existe na B3
-          if (!ativoExisteNaB3(op.ativo)) {
-            console.warn(`Ativo não reconhecido na B3: ${op.ativo}`);
-            // Corrigir o nome do ativo se possível
-            // Esta lógica poderia ser mais sofisticada em um sistema real
-          }
+          op.ativo = corrigirNomeAtivo(op.ativo);
         });
         
         // Calcular impostos com a lógica aprimorada
@@ -116,10 +111,18 @@ export const usePdfProcessor = (
           };
         }).filter(item => item.quantidade > 0);
         
+        // Atualizar resultados mensais
+        const resultadoMensal = {
+          dayTrade: notaCorretagem.resultadoDayTrade,
+          swingTrade: notaCorretagem.resultadoSwingTrade,
+          mes: notaCorretagem.mes
+        };
+        
         return {
           notasCorretagem: notasAtualizadas,
           ativos,
           impostos,
+          resultadoMensal,
           dividendos: prev.dividendos, // Manter dividendos existentes
           portfolio,
           cotacoes: prev.cotacoes

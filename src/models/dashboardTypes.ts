@@ -1,3 +1,4 @@
+
 import { Operation, NotaCorretagem, Dividendo } from "@/utils/pdfParser";
 import { Cotacao } from "@/services/stockService";
 
@@ -8,6 +9,11 @@ export interface DashboardData {
     dayTrade: number;
     swingTrade: number;
     prejuizoAcumulado: number;
+  };
+  resultadoMensal: {
+    dayTrade: number;
+    swingTrade: number;
+    mes: string;
   };
   dividendos: Dividendo[];
   portfolio: {

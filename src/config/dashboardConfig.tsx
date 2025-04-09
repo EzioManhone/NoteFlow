@@ -12,6 +12,11 @@ export const initialDashboardData: DashboardData = {
     swingTrade: 0,
     prejuizoAcumulado: 0
   },
+  resultadoMensal: {
+    dayTrade: 0,
+    swingTrade: 0,
+    mes: ""
+  },
   dividendos: [],
   portfolio: [],
   cotacoes: []
