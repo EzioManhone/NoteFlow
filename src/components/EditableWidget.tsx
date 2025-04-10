@@ -46,78 +46,80 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
     setIsEditing(false);
   };
 
-  // Creating a separate function for drag start that doesn't use framer-motion's drag handlers
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.setData("widget", JSON.stringify(widget));
     e.dataTransfer.effectAllowed = "copy";
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+    <div
       className={`${widget.visible ? "" : "opacity-50"} ${isExpanded ? "col-span-2 row-span-2" : ""}`}
-      layout
       draggable
       onDragStart={handleDragStart}
     >
-      <Card className="h-full shadow-md border-primary/10 bg-card relative group">
-        {/* Barra de controle do widget */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-          <Button variant="ghost" size="icon" onClick={() => duplicateWidget(widget.id)}>
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)}>
-            {isExpanded ? 
-              <Minimize className="h-4 w-4" /> : 
-              <Maximize className="h-4 w-4" />
-            }
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
-            {isEditing ? <Check className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => toggleWidgetVisibility(widget.id)}>
-            {widget.visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </Button>
-          <Button variant="ghost" size="icon" onClick={onRemove}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="absolute top-2 left-2 cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-        
-        <CardHeader className="pb-2 pt-6">
-          {isEditing ? (
-            <div className="flex items-center gap-2">
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="h-8 text-base font-semibold"
-                autoFocus
-                onBlur={handleSaveTitle}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveTitle();
-                }}
-              />
-              <Button size="sm" variant="ghost" onClick={handleSaveTitle}>
-                <Check className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <CardTitle className="text-lg flex items-center gap-2">
-              {widget.icon}
-              {title}
-            </CardTitle>
-          )}
-        </CardHeader>
-        <CardContent>
-          {children}
-        </CardContent>
-      </Card>
-    </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        layout
+      >
+        <Card className="h-full shadow-md border-primary/10 bg-card relative group">
+          {/* Barra de controle do widget */}
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+            <Button variant="ghost" size="icon" onClick={() => duplicateWidget(widget.id)}>
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)}>
+              {isExpanded ? 
+                <Minimize className="h-4 w-4" /> : 
+                <Maximize className="h-4 w-4" />
+              }
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
+              {isEditing ? <Check className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => toggleWidgetVisibility(widget.id)}>
+              {widget.visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onRemove}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="absolute top-2 left-2 cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+          
+          <CardHeader className="pb-2 pt-6">
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="h-8 text-base font-semibold"
+                  autoFocus
+                  onBlur={handleSaveTitle}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTitle();
+                  }}
+                />
+                <Button size="sm" variant="ghost" onClick={handleSaveTitle}>
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <CardTitle className="text-lg flex items-center gap-2">
+                {widget.icon}
+                {title}
+              </CardTitle>
+            )}
+          </CardHeader>
+          <CardContent>
+            {children}
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
   );
 };
 
