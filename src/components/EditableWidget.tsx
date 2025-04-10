@@ -46,7 +46,8 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
     setIsEditing(false);
   };
 
-  const handleDragStart = (e: React.DragEvent) => {
+  // Creating a separate function for drag start that doesn't use framer-motion's drag handlers
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.setData("widget", JSON.stringify(widget));
     e.dataTransfer.effectAllowed = "copy";
   };
