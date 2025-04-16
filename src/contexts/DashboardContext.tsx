@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { DashboardData, WidgetConfig, DashboardLayout } from "@/models/dashboardTypes";
 import { initialDashboardData, initialLayout } from "@/config/dashboardConfig";
@@ -91,7 +90,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     handleWidgetDrop: widgetsManager.handleWidgetDrop,
     saveLayout: widgetsManager.saveLayout,
     atualizarCotacoes: cotacoesManager.atualizarCotacoes,
-    isLoadingCotacoes: cotacoesManager.isLoadingCotacoes
+    isLoadingCotacoes: cotacoesManager.isLoading,
   };
 
   return (
