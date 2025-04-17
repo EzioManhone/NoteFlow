@@ -15,10 +15,10 @@ import {
   Pencil, 
   Save, 
   XCircle,
-  Receipt as ReceiptIcon,
-  PiggyBank as PiggyBankIcon,
-  History as HistoryIcon,
-  Briefcase as BriefcaseIcon
+  Receipt, 
+  PiggyBank,
+  History,
+  Briefcase
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -62,13 +62,15 @@ const Dashboard: React.FC = () => {
         id: "resultado-mensal", 
         title: "Resultado Mensal", 
         type: "ir-resultado-mensal",
-        component: <IRWidget view="resultado-mensal" />
+        component: <IRWidget view="resultado-mensal" />,
+        icon: <Receipt className="h-4 w-4 mr-1" />
       },
       { 
         id: "darf-pendente", 
         title: "DARF Pendente", 
         type: "ir-darf-pendente",
-        component: <IRWidget view="darf-pendente" />
+        component: <IRWidget view="darf-pendente" />,
+        icon: <Receipt className="h-4 w-4 mr-1" />
       }
     ],
     dividendos: [
@@ -76,13 +78,15 @@ const Dashboard: React.FC = () => {
         id: "proventos-recentes", 
         title: "Proventos Recentes", 
         type: "dividendos-recentes",
-        component: <DividendosWidget view="recentes" />
+        component: <DividendosWidget view="recentes" />,
+        icon: <PiggyBank className="h-4 w-4 mr-1" />
       },
       { 
         id: "proventos-previstos", 
         title: "Proventos Previstos", 
         type: "dividendos-previstos",
-        component: <DividendosWidget view="previstos" />
+        component: <DividendosWidget view="previstos" />,
+        icon: <PiggyBank className="h-4 w-4 mr-1" />
       }
     ],
     portfolio: [
@@ -90,13 +94,15 @@ const Dashboard: React.FC = () => {
         id: "ativos-rentabilidade", 
         title: "Rentabilidade", 
         type: "portfolio-rentabilidade",
-        component: <PortfolioWidget view="rentabilidade" />
+        component: <PortfolioWidget view="rentabilidade" />,
+        icon: <Briefcase className="h-4 w-4 mr-1" />
       },
       { 
         id: "ativos-distribuicao", 
         title: "Distribuição", 
         type: "portfolio-distribuicao",
-        component: <PortfolioWidget view="distribuicao" />
+        component: <PortfolioWidget view="distribuicao" />,
+        icon: <Briefcase className="h-4 w-4 mr-1" />
       }
     ],
     historico: [
@@ -104,13 +110,15 @@ const Dashboard: React.FC = () => {
         id: "operacoes-recentes", 
         title: "Operações Recentes", 
         type: "historico-recentes",
-        component: <HistoricoWidget view="recentes" />
+        component: <HistoricoWidget view="recentes" />,
+        icon: <History className="h-4 w-4 mr-1" />
       },
       { 
         id: "operacoes-mensais", 
         title: "Resumo Mensal", 
         type: "historico-mensal",
-        component: <HistoricoWidget view="mensal" />
+        component: <HistoricoWidget view="mensal" />,
+        icon: <History className="h-4 w-4 mr-1" />
       }
     ]
   };
@@ -157,8 +165,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Adicionar widget parcial
-  const handleAddPartialWidget = (category: string, partial: WidgetPartial) => {
+  // Adicionar widget parcial - Corrigido para usar o icon do partial
+  const handleAddPartialWidget = (partial: WidgetPartial) => {
     addWidget(partial.type, partial.title, partial.icon);
   };
 
@@ -181,11 +189,11 @@ const Dashboard: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56">
-                  <DropdownMenuItem onClick={() => addWidget('resumo')}>Dashboard Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget('ir')}>IR e DARF Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget('dividendos')}>Dividendos Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget('historico')}>Histórico Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget('portfolio')}>Portfólio Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("resumo")}>Dashboard Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("ir")}>IR e DARF Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("dividendos")}>Dividendos Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("historico")}>Histórico Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("portfolio")}>Portfólio Completo</DropdownMenuItem>
                   
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Componentes específicos</DropdownMenuLabel>
@@ -193,14 +201,14 @@ const Dashboard: React.FC = () => {
                   {/* IR e DARF parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                      <ReceiptIcon className="h-4 w-4 mr-2" />
+                      <Receipt className="h-4 w-4 mr-2" />
                       <span>IR e DARF</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="p-0">
                       {widgetPartials.ir.map(partial => (
                         <DropdownMenuItem 
                           key={partial.id}
-                          onClick={() => handleAddPartialWidget('ir', partial)}
+                          onClick={() => handleAddPartialWidget(partial)}
                         >
                           {partial.title}
                         </DropdownMenuItem>
@@ -211,14 +219,14 @@ const Dashboard: React.FC = () => {
                   {/* Dividendos parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                      <PiggyBankIcon className="h-4 w-4 mr-2" />
+                      <PiggyBank className="h-4 w-4 mr-2" />
                       <span>Dividendos</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="p-0">
                       {widgetPartials.dividendos.map(partial => (
                         <DropdownMenuItem 
                           key={partial.id}
-                          onClick={() => handleAddPartialWidget('dividendos', partial)}
+                          onClick={() => handleAddPartialWidget(partial)}
                         >
                           {partial.title}
                         </DropdownMenuItem>
@@ -229,14 +237,14 @@ const Dashboard: React.FC = () => {
                   {/* Portfolio parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                      <BriefcaseIcon className="h-4 w-4 mr-2" />
+                      <Briefcase className="h-4 w-4 mr-2" />
                       <span>Portfólio</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="p-0">
                       {widgetPartials.portfolio.map(partial => (
                         <DropdownMenuItem 
                           key={partial.id}
-                          onClick={() => handleAddPartialWidget('portfolio', partial)}
+                          onClick={() => handleAddPartialWidget(partial)}
                         >
                           {partial.title}
                         </DropdownMenuItem>
@@ -247,14 +255,14 @@ const Dashboard: React.FC = () => {
                   {/* Histórico parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                      <HistoryIcon className="h-4 w-4 mr-2" />
+                      <History className="h-4 w-4 mr-2" />
                       <span>Histórico</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="p-0">
                       {widgetPartials.historico.map(partial => (
                         <DropdownMenuItem 
                           key={partial.id}
-                          onClick={() => handleAddPartialWidget('historico', partial)}
+                          onClick={() => handleAddPartialWidget(partial)}
                         >
                           {partial.title}
                         </DropdownMenuItem>
