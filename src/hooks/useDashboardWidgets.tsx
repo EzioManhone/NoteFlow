@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { WidgetConfig, DashboardLayout } from "@/models/dashboardTypes";
 import { v4 as uuidv4 } from 'uuid';
@@ -12,12 +11,15 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
   // Funções para gerenciar os widgets
   const toggleEditMode = useCallback(() => setIsEditMode(!isEditMode), [isEditMode]);
 
-  const addWidget = useCallback((widgetType: string) => {
+  const addWidget = useCallback((widgetType: string, customTitle?: string, customIcon?: React.ReactNode) => {
+    const title = customTitle || `Novo ${widgetType}`;
+    const icon = customIcon || <Plus className="h-4 w-4" />;
+    
     const newWidget: WidgetConfig = {
       id: uuidv4(),
-      title: `Novo ${widgetType}`,
+      title: title,
       type: widgetType as any,
-      icon: <Plus className="h-4 w-4" />,
+      icon: icon,
       visible: true
     };
 

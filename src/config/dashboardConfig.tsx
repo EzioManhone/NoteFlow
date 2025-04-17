@@ -26,7 +26,7 @@ export const initialDashboardData: DashboardData = {
 export const initialWidgets: WidgetConfig[] = [
   {
     id: "resumo",
-    title: "Resumo da Carteira",
+    title: "Dashboard",
     type: "resumo",
     icon: <BarChart3 className="h-4 w-4 text-noteflow-primary" />,
     visible: true
