@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardWidget from "./DashboardWidget";
@@ -31,6 +32,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import EditableWidget from "./EditableWidget";
+import { WidgetConfig } from "@/models/dashboardTypes";
 
 interface WidgetPartial {
   id: string;
@@ -50,7 +52,8 @@ const Dashboard: React.FC = () => {
     addWidget,
     removeWidget, 
     saveLayout,
-    handleWidgetDrop
+    handleWidgetDrop,
+    updateWidgetPosition
   } = useDashboard();
 
   const widgetPartials: Record<string, WidgetPartial[]> = {
@@ -148,15 +151,24 @@ const Dashboard: React.FC = () => {
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+    e.dataTransfer.dropEffect = "move"; // Changed from "copy" to "move"
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     try {
       const widgetData = e.dataTransfer.getData("widget");
-      if (widgetData) {
-        handleWidgetDrop(widgetData);
+      const action = e.dataTransfer.getData("action");
+      
+      if (widgetData && action) {
+        if (action === "copy") {
+          // Only create a copy if explicitly specified
+          handleWidgetDrop(JSON.parse(widgetData));
+        } else if (action === "move") {
+          // For moving, we would handle repositioning logic here
+          console.log("Moving widget:", widgetData);
+          // This would need position data to be effective
+        }
       }
     } catch (error) {
       console.error("Erro ao processar o drop:", error);
@@ -166,7 +178,8 @@ const Dashboard: React.FC = () => {
   const handleAddPartialWidget = (partial: WidgetPartial) => {
     const widgetType = partial.type;
     const widgetTitle = partial.title;
-    addWidget(widgetType, widgetTitle);
+    const widgetIcon = partial.icon;
+    addWidget(widgetType, widgetTitle, widgetIcon);
   };
 
   return (

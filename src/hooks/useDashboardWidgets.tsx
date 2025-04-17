@@ -44,6 +44,11 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
         widget.id === widgetId ? { ...widget, position } : widget
       )
     }));
+    
+    toast({
+      title: "Posição atualizada",
+      description: "A posição do widget foi atualizada.",
+    });
   }, []);
 
   const updateWidgetSize = useCallback((widgetId: string, size: { width: number, height: number }) => {
@@ -87,32 +92,27 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
     });
   }, []);
 
-  const handleWidgetDrop = useCallback((widget: any) => {
-    // Verifica se o widget já está serializado ou se precisa ser serializado
-    let widgetData;
+  const handleWidgetDrop = useCallback((widget: WidgetConfig | string) => {
+    // Check if widget is a string (serialized) or an object
+    let widgetData: Partial<WidgetConfig>;
     
     try {
-      // Se o widget for uma string JSON, tente analisá-lo
+      // If widget is a string, parse it
       if (typeof widget === 'string') {
         widgetData = JSON.parse(widget);
       } else {
-        // Se for um objeto, use-o diretamente, mas crie uma nova versão simplificada
-        // para evitar problemas de referência circular com elementos React
-        widgetData = {
-          id: widget.id || uuidv4(),
-          title: widget.title || "Novo Widget",
-          type: widget.type || "resumo",
-          // Não clonamos diretamente o ícone, apenas o tipo
-          visible: true
-        };
+        // If it's already an object, use it directly
+        widgetData = widget;
       }
       
-      // Garantir que temos um novo ID
+      // For moving widgets, we could implement repositioning logic here
+      // For now, we'll handle widget copying
       const newWidget: WidgetConfig = {
-        ...widgetData,
         id: uuidv4(),
-        title: `${widgetData.title} (cópia)`,
-        // Usar um ícone padrão para evitar problemas de serialização
+        title: `${widgetData.title || "Novo Widget"} (cópia)`,
+        type: widgetData.type || "resumo",
+        visible: true,
+        // Use a default icon to prevent serialization issues
         icon: <Plus className="h-4 w-4" />
       };
 
@@ -136,12 +136,12 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
   }, []);
 
   const saveLayout = useCallback(() => {
-    // Preparar uma versão serializável do layout (sem elementos React)
+    // Prepare a serializable version of the layout (without React elements)
     const serializableLayout = {
       ...layout,
       widgets: layout.widgets.map(widget => ({
         ...widget,
-        // Substitui o ícone React por uma string indicando seu tipo
+        // Replace React icon with null to avoid serialization issues
         icon: typeof widget.icon === 'object' ? null : widget.icon
       }))
     };

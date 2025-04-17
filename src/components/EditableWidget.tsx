@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { WidgetConfig } from "@/models/dashboardTypes";
+import { toast } from "@/components/ui/use-toast";
 
 interface EditableWidgetProps {
   widget: WidgetConfig;
@@ -30,7 +31,7 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
   children,
   onRemove
 }) => {
-  const { toggleWidgetVisibility, duplicateWidget } = useDashboard();
+  const { toggleWidgetVisibility, duplicateWidget, updateWidgetPosition } = useDashboard();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(widget.title);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -38,11 +39,12 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
   const handleSaveTitle = () => {
     // Na implementação real, aqui salvaria o novo título
     setIsEditing(false);
+    // Here we would also update the widget title in the dashboard context
   };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     try {
-      // Criar uma versão serializável do widget sem elementos React
+      // Create a serializable version of the widget for data transfer
       const serializableWidget = {
         id: widget.id,
         title: widget.title,
@@ -50,10 +52,21 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
         visible: widget.visible
       };
       
+      // Set the serialized widget data
       e.dataTransfer.setData("widget", JSON.stringify(serializableWidget));
-      e.dataTransfer.effectAllowed = "copy";
+      
+      // Set the action to "move" by default
+      e.dataTransfer.setData("action", "move");
+      
+      // Set effect allowed to "move" to indicate we're moving the widget
+      e.dataTransfer.effectAllowed = "move";
     } catch (error) {
       console.error("Erro ao iniciar drag:", error);
+      toast({
+        title: "Erro ao iniciar arrasto",
+        description: "Não foi possível iniciar o arrasto do widget.",
+        variant: "destructive"
+      });
     }
   };
 
