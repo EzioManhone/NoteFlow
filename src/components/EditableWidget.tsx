@@ -31,35 +31,36 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
   children,
   onRemove
 }) => {
-  const { toggleWidgetVisibility, duplicateWidget, updateWidgetPosition } = useDashboard();
+  const { toggleWidgetVisibility, duplicateWidget, updateWidgetPosition, updateWidgetTitle } = useDashboard();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(widget.title);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleSaveTitle = () => {
-    // Na implementação real, aqui salvaria o novo título
+    updateWidgetTitle(widget.id, title);
     setIsEditing(false);
-    // Here we would also update the widget title in the dashboard context
+    toast({
+      title: "Título atualizado",
+      description: "O título do widget foi atualizado com sucesso.",
+    });
   };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     try {
-      // Create a serializable version of the widget for data transfer
-      const serializableWidget = {
-        id: widget.id,
-        title: widget.title,
-        type: widget.type,
-        visible: widget.visible
-      };
-      
-      // Set the serialized widget data
-      e.dataTransfer.setData("widget", JSON.stringify(serializableWidget));
-      
-      // Set the action to "move" by default
+      setIsDragging(true);
+      // Create simple data for transfer to avoid serialization issues
+      e.dataTransfer.setData("widgetId", widget.id);
       e.dataTransfer.setData("action", "move");
-      
-      // Set effect allowed to "move" to indicate we're moving the widget
       e.dataTransfer.effectAllowed = "move";
+      
+      // Use the drag image for visual feedback
+      const dragElement = e.currentTarget;
+      if (dragElement) {
+        // Set the drag image offset to center it
+        const rect = dragElement.getBoundingClientRect();
+        e.dataTransfer.setDragImage(dragElement, rect.width / 2, rect.height / 2);
+      }
     } catch (error) {
       console.error("Erro ao iniciar drag:", error);
       toast({
@@ -70,17 +71,23 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
     }
   };
 
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div
       className={`${widget.visible ? "" : "opacity-50"} ${isExpanded ? "col-span-2 row-span-2" : ""}`}
       draggable
       onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         layout
+        className={isDragging ? "opacity-50" : ""}
       >
         <Card className="h-full shadow-md border-primary/10 bg-card relative group">
           {/* Barra de controle do widget */}

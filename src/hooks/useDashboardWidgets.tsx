@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/use-toast";
 export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
   const [layout, setLayout] = useState<DashboardLayout>(initialLayout);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [gridPositions, setGridPositions] = useState<Record<string, { row: number, col: number }>>({});
 
   // Funções para gerenciar os widgets
   const toggleEditMode = useCallback(() => setIsEditMode(!isEditMode), [isEditMode]);
@@ -38,6 +39,8 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
   }, []);
 
   const updateWidgetPosition = useCallback((widgetId: string, position: { x: number, y: number }) => {
+    console.log(`Updating position for widget ${widgetId} to:`, position);
+    
     setLayout(prev => ({
       ...prev,
       widgets: prev.widgets.map(widget => 
@@ -49,6 +52,15 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
       title: "Posição atualizada",
       description: "A posição do widget foi atualizada.",
     });
+  }, []);
+
+  const updateWidgetTitle = useCallback((widgetId: string, title: string) => {
+    setLayout(prev => ({
+      ...prev,
+      widgets: prev.widgets.map(widget => 
+        widget.id === widgetId ? { ...widget, title } : widget
+      )
+    }));
   }, []);
 
   const updateWidgetSize = useCallback((widgetId: string, size: { width: number, height: number }) => {
@@ -92,48 +104,49 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
     });
   }, []);
 
-  const handleWidgetDrop = useCallback((widget: WidgetConfig | string) => {
-    // Check if widget is a string (serialized) or an object
-    let widgetData: Partial<WidgetConfig>;
-    
+  const handleWidgetDrop = useCallback((e: React.DragEvent<HTMLDivElement>, targetPosition?: { row: number, col: number }) => {
     try {
-      // If widget is a string, parse it
-      if (typeof widget === 'string') {
-        widgetData = JSON.parse(widget);
-      } else {
-        // If it's already an object, use it directly
-        widgetData = widget;
+      e.preventDefault();
+      
+      const widgetId = e.dataTransfer.getData("widgetId");
+      const action = e.dataTransfer.getData("action");
+      
+      if (!widgetId || !action) {
+        console.error("Dados incompletos de arrasto");
+        return;
       }
       
-      // For moving widgets, we could implement repositioning logic here
-      // For now, we'll handle widget copying
-      const newWidget: WidgetConfig = {
-        id: uuidv4(),
-        title: `${widgetData.title || "Novo Widget"} (cópia)`,
-        type: widgetData.type || "resumo",
-        visible: true,
-        // Use a default icon to prevent serialization issues
-        icon: <Plus className="h-4 w-4" />
-      };
-
-      setLayout(prev => ({
-        ...prev,
-        widgets: [...prev.widgets, newWidget]
-      }));
-
-      toast({
-        title: "Widget adicionado",
-        description: "O widget foi adicionado com sucesso!",
-      });
+      if (action === "move") {
+        // Get the drop position from the event
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Calculate the position based on the grid
+        const position = targetPosition || {
+          x: Math.floor(x / 100) * 100,
+          y: Math.floor(y / 100) * 100
+        };
+        
+        console.log(`Moving widget ${widgetId} to position:`, position);
+        
+        // Update widget position
+        updateWidgetPosition(widgetId, { x: position.x, y: position.y });
+        
+        toast({
+          title: "Widget movido",
+          description: "O widget foi movido para a nova posição."
+        });
+      }
     } catch (error) {
-      console.error("Erro ao processar o widget arrastado:", error);
+      console.error("Erro ao processar o drop:", error);
       toast({
-        title: "Erro ao adicionar widget",
-        description: "Não foi possível adicionar o widget.",
+        title: "Erro ao mover widget",
+        description: "Não foi possível mover o widget.",
         variant: "destructive"
       });
     }
-  }, []);
+  }, [updateWidgetPosition]);
 
   const saveLayout = useCallback(() => {
     // Prepare a serializable version of the layout (without React elements)
@@ -142,7 +155,7 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
       widgets: layout.widgets.map(widget => ({
         ...widget,
         // Replace React icon with null to avoid serialization issues
-        icon: typeof widget.icon === 'object' ? null : widget.icon
+        icon: null
       }))
     };
     
@@ -171,6 +184,7 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
     removeWidget,
     updateWidgetPosition,
     updateWidgetSize,
+    updateWidgetTitle,
     toggleWidgetVisibility,
     duplicateWidget,
     handleWidgetDrop,

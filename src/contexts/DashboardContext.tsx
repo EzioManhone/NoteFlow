@@ -21,9 +21,10 @@ type DashboardContextType = {
   removeWidget: (widgetId: string) => void;
   updateWidgetPosition: (widgetId: string, position: { x: number, y: number }) => void;
   updateWidgetSize: (widgetId: string, size: { width: number, height: number }) => void;
+  updateWidgetTitle: (widgetId: string, title: string) => void;
   toggleWidgetVisibility: (widgetId: string) => void;
   duplicateWidget: (widgetId: string) => void;
-  handleWidgetDrop: (widget: WidgetConfig) => void;
+  handleWidgetDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   saveLayout: () => void;
   atualizarCotacoes: () => Promise<void>;
   isLoadingCotacoes: boolean;
@@ -59,7 +60,22 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const savedLayout = localStorage.getItem('dashboardLayout');
     if (savedLayout) {
       try {
-        widgetsManager.setLayout(JSON.parse(savedLayout));
+        const parsedLayout = JSON.parse(savedLayout);
+        
+        // Reapply icons based on widget types
+        const layoutWithIcons = {
+          ...parsedLayout,
+          widgets: parsedLayout.widgets.map((widget: WidgetConfig) => {
+            // Get the original widget to preserve its icon
+            const originalWidget = initialLayout.widgets.find(w => w.type === widget.type);
+            return {
+              ...widget,
+              icon: originalWidget?.icon || null
+            };
+          })
+        };
+        
+        widgetsManager.setLayout(layoutWithIcons);
       } catch (error) {
         console.error('Erro ao carregar layout salvo:', error);
       }
@@ -86,6 +102,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     removeWidget: widgetsManager.removeWidget,
     updateWidgetPosition: widgetsManager.updateWidgetPosition,
     updateWidgetSize: widgetsManager.updateWidgetSize,
+    updateWidgetTitle: widgetsManager.updateWidgetTitle,
     toggleWidgetVisibility: widgetsManager.toggleWidgetVisibility,
     duplicateWidget: widgetsManager.duplicateWidget,
     handleWidgetDrop: widgetsManager.handleWidgetDrop,

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardWidget from "./DashboardWidget";
@@ -52,8 +51,7 @@ const Dashboard: React.FC = () => {
     addWidget,
     removeWidget, 
     saveLayout,
-    handleWidgetDrop,
-    updateWidgetPosition
+    handleWidgetDrop
   } = useDashboard();
 
   const widgetPartials: Record<string, WidgetPartial[]> = {
@@ -151,28 +149,12 @@ const Dashboard: React.FC = () => {
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move"; // Changed from "copy" to "move"
+    e.dataTransfer.dropEffect = "move";
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    try {
-      const widgetData = e.dataTransfer.getData("widget");
-      const action = e.dataTransfer.getData("action");
-      
-      if (widgetData && action) {
-        if (action === "copy") {
-          // Only create a copy if explicitly specified
-          handleWidgetDrop(JSON.parse(widgetData));
-        } else if (action === "move") {
-          // For moving, we would handle repositioning logic here
-          console.log("Moving widget:", widgetData);
-          // This would need position data to be effective
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao processar o drop:", error);
-    }
+    handleWidgetDrop(e);
   };
 
   const handleAddPartialWidget = (partial: WidgetPartial) => {
@@ -301,7 +283,7 @@ const Dashboard: React.FC = () => {
 
       {isEditMode ? (
         <div 
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[300px] relative"
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
