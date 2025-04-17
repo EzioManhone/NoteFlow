@@ -15,11 +15,10 @@ import {
   Pencil, 
   Save, 
   XCircle,
-  MoveHorizontal, 
-  Eye, 
-  EyeOff,
-  PanelLeft,
-  LucideIcon
+  Receipt,
+  PiggyBank,
+  History as HistoryIcon,
+  Briefcase
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -145,12 +144,12 @@ const Dashboard: React.FC = () => {
 
   const visibleWidgets = widgets.filter(widget => widget.visible);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const widgetData = e.dataTransfer.getData("widget");
     if (widgetData) {
@@ -249,7 +248,7 @@ const Dashboard: React.FC = () => {
                   {/* Histórico parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                      <History className="h-4 w-4 mr-2" />
+                      <HistoryIcon className="h-4 w-4 mr-2" />
                       <span>Histórico</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="p-0">

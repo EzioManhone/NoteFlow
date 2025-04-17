@@ -1,11 +1,14 @@
-
-import React, { useEffect } from "react";
+import React from "react";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, RefreshCw, Briefcase as BriefcaseIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const PortfolioWidget: React.FC = () => {
+interface PortfolioWidgetProps {
+  view?: string;
+}
+
+const PortfolioWidget: React.FC<PortfolioWidgetProps> = ({ view }) => {
   const { dashboardData, atualizarCotacoes, isLoadingCotacoes } = useDashboard();
   
   // Formatar valores monetários
@@ -37,6 +40,91 @@ const PortfolioWidget: React.FC = () => {
   }, 0);
   const rentabilidadeTotal = valorInvestido > 0 ? ((valorAtual / valorInvestido) - 1) * 100 : 0;
 
+  // Visualizações específicas
+  if (view === "rentabilidade") {
+    return (
+      <Card className={`${rentabilidadeTotal >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-sm font-medium mb-2 flex items-center">
+                <BriefcaseIcon className="w-4 h-4 mr-1" /> Rentabilidade
+              </h3>
+              <p className={`text-2xl font-bold ${rentabilidadeTotal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {rentabilidadeTotal.toFixed(2)}%
+              </p>
+            </div>
+            <div className={`p-2 rounded-full ${rentabilidadeTotal >= 0 ? 'bg-green-200 dark:bg-green-800' : 'bg-red-200 dark:bg-red-800'}`}>
+              {rentabilidadeTotal >= 0 ? (
+                <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+              ) : (
+                <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
+              )}
+            </div>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Valor Investido</p>
+              <p className="font-medium">{formatCurrency(valorInvestido)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Valor Atual</p>
+              <p className="font-medium">{formatCurrency(valorAtual)}</p>
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-muted-foreground text-right">
+            Última atualização: {formatarDataHora(dashboardData.ultimaAtualizacaoCotacoes)}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (view === "distribuicao") {
+    // Calcular a distribuição dos ativos por valor
+    const distribuicao = dashboardData.portfolio.map(item => {
+      const cotacaoAtual = item.cotacaoAtual || item.precoMedio;
+      const valorAtual = item.quantidade * cotacaoAtual;
+      const percentual = (valorAtual / valorAtual) * 100;
+      
+      return {
+        ativo: item.ativo,
+        valor: valorAtual,
+        percentual
+      };
+    }).sort((a, b) => b.valor - a.valor);
+    
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium mb-2 flex items-center">
+            <BriefcaseIcon className="w-4 h-4 mr-1" /> Distribuição da Carteira
+          </h3>
+          <div className="space-y-3 mt-4">
+            {distribuicao.map((item, index) => (
+              <div key={index}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium">{item.ativo}</span>
+                  <span>{formatCurrency(item.valor)}</span>
+                </div>
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 rounded-full" 
+                    style={{ width: `${(item.valor / valorAtual) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-right text-muted-foreground mt-1">
+                  {((item.valor / valorAtual) * 100).toFixed(1)}%
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Widget completo (visualização padrão)
   return (
     <div className="space-y-4">
       {dashboardData.portfolio.length > 0 ? (

@@ -1,8 +1,7 @@
-
 import React from "react";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { BadgePlus, BadgeMinus } from "lucide-react";
+import { BadgePlus, BadgeMinus, History as HistoryIcon } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -23,7 +22,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const HistoricoWidget: React.FC = () => {
+interface HistoricoWidgetProps {
+  view?: string;
+}
+
+const HistoricoWidget: React.FC<HistoricoWidgetProps> = ({ view }) => {
   const { dashboardData } = useDashboard();
   
   // Formatar valores monetários
@@ -60,6 +63,102 @@ const HistoricoWidget: React.FC = () => {
     }))
   );
 
+  // Visualizações específicas
+  if (view === "recentes") {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium mb-2 flex items-center">
+            <HistoryIcon className="w-4 h-4 mr-1" /> Operações Recentes
+          </h3>
+          <div className="overflow-hidden rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left py-2 px-4">Data</th>
+                  <th className="text-left py-2 px-4">Ativo</th>
+                  <th className="text-left py-2 px-4">Operação</th>
+                  <th className="text-right py-2 px-4">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {todasOperacoes.slice(0, 5).map((op, index) => (
+                  <tr key={index} className="border-t">
+                    <td className="py-2 px-4">{formatDate(op.notaData)}</td>
+                    <td className="py-2 px-4">{op.ativo}</td>
+                    <td className="py-2 px-4">
+                      <span className={`flex items-center ${op.tipo === 'compra' ? 'text-green-600' : 'text-red-600'}`}>
+                        {op.tipo === 'compra' ? (
+                          <BadgePlus className="h-4 w-4 mr-1" />
+                        ) : (
+                          <BadgeMinus className="h-4 w-4 mr-1" />
+                        )}
+                        {op.tipo === 'compra' ? 'Compra' : 'Venda'}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 text-right">{formatCurrency(op.valor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (view === "mensal") {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium mb-2 flex items-center">
+            <HistoryIcon className="w-4 h-4 mr-1" /> Resumo Mensal
+          </h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={historicalData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                <XAxis dataKey="data" />
+                <YAxis 
+                  tickFormatter={(value) => 
+                    new Intl.NumberFormat('pt-BR', { 
+                      notation: 'compact',
+                      compactDisplay: 'short'
+                    }).format(value)
+                  } 
+                />
+                <Tooltip 
+                  formatter={(value) => formatCurrency(Number(value))}
+                  labelFormatter={(label) => `Mês: ${label}`}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="patrimonio" 
+                  name="Patrimônio" 
+                  stroke="#4F46E5" 
+                  strokeWidth={2}
+                  activeDot={{ r: 8 }} 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="lucro" 
+                  name="Lucro/Prejuízo" 
+                  stroke="#10B981" 
+                  strokeWidth={2} 
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Widget completo (visualização padrão)
   return (
     <div className="space-y-4">
       {dashboardData.notasCorretagem.length > 0 ? (

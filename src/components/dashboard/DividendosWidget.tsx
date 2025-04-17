@@ -1,10 +1,13 @@
-
 import React from "react";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { PiggyBank, TrendingUp, Calendar } from "lucide-react";
 
-const DividendosWidget: React.FC = () => {
+interface DividendosWidgetProps {
+  view?: string;
+}
+
+const DividendosWidget: React.FC<DividendosWidgetProps> = ({ view }) => {
   const { dashboardData } = useDashboard();
   
   // Dados simulados para dividendos (para demonstração)
@@ -41,6 +44,85 @@ const DividendosWidget: React.FC = () => {
     .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
     .find(div => new Date(div.data) > new Date());
 
+  // Visualizações específicas baseadas no parâmetro view
+  if (view === "recentes") {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium mb-2 flex items-center">
+            <PiggyBank className="w-4 h-4 mr-1" /> Proventos Recentes
+          </h3>
+          <div className="overflow-hidden rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left py-2 px-4">Ativo</th>
+                  <th className="text-left py-2 px-4">Data</th>
+                  <th className="text-right py-2 px-4">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dividendosSimulados.slice(0, 3).map((div, index) => (
+                  <tr key={index} className="border-t">
+                    <td className="py-2 px-4">{div.ativo}</td>
+                    <td className="py-2 px-4">{formatDate(div.data)}</td>
+                    <td className="py-2 px-4 text-right">{formatCurrency(div.valor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (view === "previstos") {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium mb-2 flex items-center">
+            <Calendar className="w-4 h-4 mr-1" /> Proventos Previstos
+          </h3>
+          {proximoPagamento ? (
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <p className="font-medium">{proximoPagamento.ativo}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(proximoPagamento.data)}
+                  </p>
+                </div>
+                <p className="text-lg font-bold text-green-600">
+                  {formatCurrency(proximoPagamento.valor)}
+                </p>
+              </div>
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p>Próximos pagamentos previstos:</p>
+                <ul className="mt-2 space-y-1">
+                  {dividendosSimulados
+                    .filter(div => new Date(div.data) > new Date())
+                    .slice(1, 4)
+                    .map((div, idx) => (
+                      <li key={idx} className="flex justify-between">
+                        <span>{div.ativo} ({formatDate(div.data)})</span>
+                        <span>{formatCurrency(div.valor)}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">
+              Nenhum pagamento previsto no momento.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Widget completo (visualização padrão)
   return (
     <div className="space-y-4">
       {dashboardData.portfolio.length > 0 ? (

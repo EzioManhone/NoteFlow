@@ -2,14 +2,14 @@
 import React from "react";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Receipt, AlertTriangle, ArrowDown, Calendar, BadgeDollarSign } from "lucide-react";
+import { Receipt, DollarSign, BadgeAlert } from "lucide-react";
 
-const IRWidget: React.FC = () => {
+interface IRWidgetProps {
+  view?: string;
+}
+
+const IRWidget: React.FC<IRWidgetProps> = ({ view }) => {
   const { dashboardData } = useDashboard();
-  const { impostos, resultadoMensal } = dashboardData;
-
-  // Calcular valor total devido
-  const totalDevido = impostos.dayTrade + impostos.swingTrade;
   
   // Formatar valores monetários
   const formatCurrency = (value: number) => {
@@ -19,156 +19,127 @@ const IRWidget: React.FC = () => {
     }).format(value);
   };
 
-  const vencimentoDARF = new Date();
-  vencimentoDARF.setDate(vencimentoDARF.getDate() + 10); // Simulação de data de vencimento
+  // Renderização condicional baseada na visualização selecionada
+  if (view === "resultado-mensal") {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium mb-2 flex items-center">
+            <DollarSign className="w-4 h-4 mr-1" /> Resultado Mensal
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Day Trade</p>
+              <p className="font-medium">{formatCurrency(dashboardData.resultadoMensal.dayTrade)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Swing Trade</p>
+              <p className="font-medium">{formatCurrency(dashboardData.resultadoMensal.swingTrade)}</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Mês de referência: {dashboardData.resultadoMensal.mes || 'N/A'}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
   
-  const formattedDate = vencimentoDARF.toLocaleDateString('pt-BR');
+  if (view === "darf-pendente") {
+    return (
+      <Card className="bg-amber-50 dark:bg-amber-900/20">
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium mb-2 flex items-center">
+            <BadgeAlert className="w-4 h-4 mr-1" /> DARF Pendente
+          </h3>
+          <p className="font-medium">
+            {dashboardData.impostos.dayTrade > 0 || dashboardData.impostos.swingTrade > 0 ? (
+              <span>Você possui DARF pendente para pagamento</span>
+            ) : (
+              <span>Nenhuma DARF pendente</span>
+            )}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
   
-  // Verificar limite de isenção para swing trade (R$ 20.000,00)
-  const isento = dashboardData.notasCorretagem.flatMap(n => n.operacoes).reduce((acc, op) => 
-    !op.dayTrade ? acc + op.valor : acc, 0) < 20000;
-
+  // Visualização padrão - widget completo
   return (
     <div className="space-y-4">
       {dashboardData.notasCorretagem.length > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-red-50 dark:bg-red-900/20">
+            <Card>
               <CardContent className="p-4">
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Receipt className="w-4 h-4 mr-1" /> DARF Day Trade
-                </h3>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  {formatCurrency(impostos.dayTrade)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Alíquota: 20%
+                <h3 className="text-sm font-medium mb-2">Imposto Day Trade</h3>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(dashboardData.impostos.dayTrade)}
                 </p>
               </CardContent>
             </Card>
             
-            <Card className={isento ? "bg-green-50 dark:bg-green-900/20" : "bg-orange-50 dark:bg-orange-900/20"}>
+            <Card>
               <CardContent className="p-4">
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Receipt className="w-4 h-4 mr-1" /> DARF Swing Trade
-                </h3>
-                {isento ? (
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    ISENTO
-                  </p>
-                ) : (
-                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                    {formatCurrency(impostos.swingTrade)}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isento ? "Vendas abaixo de R$ 20.000,00" : "Alíquota: 15%"}
+                <h3 className="text-sm font-medium mb-2">Imposto Swing Trade</h3>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(dashboardData.impostos.swingTrade)}
                 </p>
               </CardContent>
             </Card>
             
-            <Card className="bg-blue-50 dark:bg-blue-900/20">
+            <Card>
               <CardContent className="p-4">
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <ArrowDown className="w-4 h-4 mr-1" /> Prejuízo Acumulado
-                </h3>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {formatCurrency(impostos.prejuizoAcumulado)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pode ser compensado em operações futuras
+                <h3 className="text-sm font-medium mb-2">Prejuízo Acumulado</h3>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(dashboardData.impostos.prejuizoAcumulado)}
                 </p>
               </CardContent>
             </Card>
           </div>
           
-          {/* Resultados Mensais */}
-          <div className="mt-4">
-            <h3 className="text-lg font-medium mb-3 flex items-center">
-              <Calendar className="w-5 h-5 mr-2" /> 
-              Resultado Mensal ({resultadoMensal.mes || 'N/A'})
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <Card className={resultadoMensal.dayTrade >= 0 ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"}>
-                <CardContent className="p-4">
-                  <h3 className="text-sm font-medium mb-2">Day Trade</h3>
-                  <p className={`text-2xl font-bold ${resultadoMensal.dayTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {formatCurrency(resultadoMensal.dayTrade)}
+          <Card className="bg-amber-50 dark:bg-amber-900/20">
+            <CardContent className="p-4">
+              <h3 className="text-sm font-medium mb-2">Informações de DARF</h3>
+              {dashboardData.impostos.dayTrade > 0 || dashboardData.impostos.swingTrade > 0 ? (
+                <div className="space-y-4">
+                  <p className="font-medium">
+                    Você possui DARF pendente para pagamento
                   </p>
-                </CardContent>
-              </Card>
-              
-              <Card className={resultadoMensal.swingTrade >= 0 ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"}>
-                <CardContent className="p-4">
-                  <h3 className="text-sm font-medium mb-2">Swing Trade</h3>
-                  <p className={`text-2xl font-bold ${resultadoMensal.swingTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {formatCurrency(resultadoMensal.swingTrade)}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-          
-          {totalDevido > 0 && (
-            <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5" />
-                  <div>
-                    <h3 className="font-medium text-amber-800 dark:text-amber-300">
-                      Prazo para pagamento do DARF
-                    </h3>
-                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                      O DARF referente às operações realizadas deve ser pago até o último dia útil do mês subsequente.
-                      Data estimada: <strong>{formattedDate}</strong>
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {dashboardData.impostos.dayTrade > 0 && (
+                      <div className="p-3 bg-white dark:bg-black rounded-lg shadow-sm">
+                        <p className="font-medium">Day Trade</p>
+                        <p className="text-lg">{formatCurrency(dashboardData.impostos.dayTrade)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Vencimento: último dia útil do mês
+                        </p>
+                      </div>
+                    )}
+                    
+                    {dashboardData.impostos.swingTrade > 0 && (
+                      <div className="p-3 bg-white dark:bg-black rounded-lg shadow-sm">
+                        <p className="font-medium">Swing Trade</p>
+                        <p className="text-lg">{formatCurrency(dashboardData.impostos.swingTrade)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Vencimento: último dia útil do mês
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          <div className="mt-4">
-            <h3 className="text-lg font-medium mb-3 flex items-center">
-              <BadgeDollarSign className="w-5 h-5 mr-2" />
-              Suas Notas de Corretagem
-            </h3>
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-left py-2 px-4">Nota</th>
-                    <th className="text-left py-2 px-4">Data</th>
-                    <th className="text-left py-2 px-4">Corretora</th>
-                    <th className="text-right py-2 px-4">Valor Total</th>
-                    <th className="text-right py-2 px-4">Day Trade</th>
-                    <th className="text-right py-2 px-4">Swing Trade</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dashboardData.notasCorretagem.map((nota, index) => (
-                    <tr key={index} className="border-t">
-                      <td className="py-2 px-4">{nota.numero}</td>
-                      <td className="py-2 px-4">{nota.data}</td>
-                      <td className="py-2 px-4">{nota.corretora}</td>
-                      <td className="py-2 px-4 text-right">{formatCurrency(nota.valorTotal)}</td>
-                      <td className={`py-2 px-4 text-right ${nota.resultadoDayTrade >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatCurrency(nota.resultadoDayTrade)}
-                      </td>
-                      <td className={`py-2 px-4 text-right ${nota.resultadoSwingTrade >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatCurrency(nota.resultadoSwingTrade)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+              ) : (
+                <p className="font-medium">
+                  Não há DARF pendente para pagamento.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </>
       ) : (
         <div className="text-center py-12">
           <p className="text-lg font-medium text-muted-foreground">
-            Carregue uma nota de corretagem para calcular o IR
+            Carregue uma nota de corretagem para visualizar informações de IR e DARF
           </p>
         </div>
       )}

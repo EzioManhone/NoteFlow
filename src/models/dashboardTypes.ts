@@ -33,7 +33,7 @@ export interface DashboardData {
 export interface WidgetConfig {
   id: string;
   title: string;
-  type: 'resumo' | 'ir' | 'dividendos' | 'historico' | 'portfolio' | 'custom';
+  type: string;
   content?: React.ReactNode;
   icon?: React.ReactNode;
   position?: { x: number, y: number };
