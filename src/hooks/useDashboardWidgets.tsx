@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { WidgetConfig, DashboardLayout } from "@/models/dashboardTypes";
 import { v4 as uuidv4 } from 'uuid';
@@ -18,7 +19,7 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
     const newWidget: WidgetConfig = {
       id: uuidv4(),
       title: title,
-      type: widgetType as any,
+      type: widgetType,
       icon: icon,
       visible: true
     };

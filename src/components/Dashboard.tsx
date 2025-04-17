@@ -165,9 +165,9 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // The issue is here - we need to update this function to match the context
+  // Fixed function to properly call addWidget with the correct parameters
   const handleAddPartialWidget = (partial: WidgetPartial) => {
-    // Call addWidget with the correct parameters according to the DashboardContext
+    // Call addWidget with all parameters according to the DashboardContext
     addWidget(partial.type, partial.title, partial.icon);
   };
 
