@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardWidget from "./DashboardWidget";
@@ -171,7 +170,6 @@ const Dashboard: React.FC = () => {
     >
       {/* Barra de controle do dashboard */}
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Personalização</h2>
         <div className="flex gap-2">
           {isEditMode && (
             <>
