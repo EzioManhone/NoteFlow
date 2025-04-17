@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardWidget from "./DashboardWidget";
@@ -14,10 +15,10 @@ import {
   Pencil, 
   Save, 
   XCircle,
-  Receipt,
-  PiggyBank,
+  Receipt as ReceiptIcon,
+  PiggyBank as PiggyBankIcon,
   History as HistoryIcon,
-  Briefcase
+  Briefcase as BriefcaseIcon
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -192,7 +193,7 @@ const Dashboard: React.FC = () => {
                   {/* IR e DARF parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                      <Receipt className="h-4 w-4 mr-2" />
+                      <ReceiptIcon className="h-4 w-4 mr-2" />
                       <span>IR e DARF</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="p-0">
@@ -210,7 +211,7 @@ const Dashboard: React.FC = () => {
                   {/* Dividendos parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                      <PiggyBank className="h-4 w-4 mr-2" />
+                      <PiggyBankIcon className="h-4 w-4 mr-2" />
                       <span>Dividendos</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="p-0">
@@ -228,7 +229,7 @@ const Dashboard: React.FC = () => {
                   {/* Portfolio parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                      <Briefcase className="h-4 w-4 mr-2" />
+                      <BriefcaseIcon className="h-4 w-4 mr-2" />
                       <span>Portfólio</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="p-0">
