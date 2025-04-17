@@ -13,16 +13,10 @@ import {
   Check,
   Maximize,
   Minimize,
-  Copy
+  Copy,
+  Plus
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 import { WidgetConfig } from "@/models/dashboardTypes";
 
 interface EditableWidgetProps {
@@ -47,8 +41,20 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    e.dataTransfer.setData("widget", JSON.stringify(widget));
-    e.dataTransfer.effectAllowed = "copy";
+    try {
+      // Criar uma versão serializável do widget sem elementos React
+      const serializableWidget = {
+        id: widget.id,
+        title: widget.title,
+        type: widget.type,
+        visible: widget.visible
+      };
+      
+      e.dataTransfer.setData("widget", JSON.stringify(serializableWidget));
+      e.dataTransfer.effectAllowed = "copy";
+    } catch (error) {
+      console.error("Erro ao iniciar drag:", error);
+    }
   };
 
   return (
@@ -109,7 +115,7 @@ const EditableWidget: React.FC<EditableWidgetProps> = ({
               </div>
             ) : (
               <CardTitle className="text-lg flex items-center gap-2">
-                {widget.icon}
+                {widget.icon || <Plus className="h-4 w-4" />}
                 {title}
               </CardTitle>
             )}

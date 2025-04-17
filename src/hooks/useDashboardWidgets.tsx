@@ -87,31 +87,79 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
     });
   }, []);
 
-  const handleWidgetDrop = useCallback((widget: WidgetConfig) => {
-    // Create a new copy of the widget with a new ID
-    const newWidget: WidgetConfig = {
-      ...widget,
-      id: uuidv4(),
-      title: `${widget.title} (cópia)`
-    };
+  const handleWidgetDrop = useCallback((widget: any) => {
+    // Verifica se o widget já está serializado ou se precisa ser serializado
+    let widgetData;
+    
+    try {
+      // Se o widget for uma string JSON, tente analisá-lo
+      if (typeof widget === 'string') {
+        widgetData = JSON.parse(widget);
+      } else {
+        // Se for um objeto, use-o diretamente, mas crie uma nova versão simplificada
+        // para evitar problemas de referência circular com elementos React
+        widgetData = {
+          id: widget.id || uuidv4(),
+          title: widget.title || "Novo Widget",
+          type: widget.type || "resumo",
+          // Não clonamos diretamente o ícone, apenas o tipo
+          visible: true
+        };
+      }
+      
+      // Garantir que temos um novo ID
+      const newWidget: WidgetConfig = {
+        ...widgetData,
+        id: uuidv4(),
+        title: `${widgetData.title} (cópia)`,
+        // Usar um ícone padrão para evitar problemas de serialização
+        icon: <Plus className="h-4 w-4" />
+      };
 
-    setLayout(prev => ({
-      ...prev,
-      widgets: [...prev.widgets, newWidget]
-    }));
+      setLayout(prev => ({
+        ...prev,
+        widgets: [...prev.widgets, newWidget]
+      }));
 
-    toast({
-      title: "Widget adicionado",
-      description: "O widget foi adicionado com sucesso!",
-    });
+      toast({
+        title: "Widget adicionado",
+        description: "O widget foi adicionado com sucesso!",
+      });
+    } catch (error) {
+      console.error("Erro ao processar o widget arrastado:", error);
+      toast({
+        title: "Erro ao adicionar widget",
+        description: "Não foi possível adicionar o widget.",
+        variant: "destructive"
+      });
+    }
   }, []);
 
   const saveLayout = useCallback(() => {
-    localStorage.setItem('dashboardLayout', JSON.stringify(layout));
-    toast({
-      title: "Layout salvo",
-      description: "Suas configurações de dashboard foram salvas com sucesso!",
-    });
+    // Preparar uma versão serializável do layout (sem elementos React)
+    const serializableLayout = {
+      ...layout,
+      widgets: layout.widgets.map(widget => ({
+        ...widget,
+        // Substitui o ícone React por uma string indicando seu tipo
+        icon: typeof widget.icon === 'object' ? null : widget.icon
+      }))
+    };
+    
+    try {
+      localStorage.setItem('dashboardLayout', JSON.stringify(serializableLayout));
+      toast({
+        title: "Layout salvo",
+        description: "Suas configurações de dashboard foram salvas com sucesso!",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar layout:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar o layout.",
+        variant: "destructive"
+      });
+    }
   }, [layout]);
 
   return {

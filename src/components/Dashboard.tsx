@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardWidget from "./DashboardWidget";
@@ -33,7 +32,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import EditableWidget from "./EditableWidget";
 
-// Interface para componentes de widgets parciais
 interface WidgetPartial {
   id: string;
   title: string;
@@ -55,7 +53,6 @@ const Dashboard: React.FC = () => {
     handleWidgetDrop
   } = useDashboard();
 
-  // Definição de componentes parciais que podem ser adicionados ao dashboard
   const widgetPartials: Record<string, WidgetPartial[]> = {
     ir: [
       { 
@@ -123,9 +120,7 @@ const Dashboard: React.FC = () => {
     ]
   };
 
-  // Renderizar o conteúdo correto baseado no tipo de widget
   const renderWidgetContent = (type: string) => {
-    // Verificar primeiro se é um widget parcial
     for (const category in widgetPartials) {
       const partial = widgetPartials[category].find(p => p.type === type);
       if (partial) {
@@ -133,7 +128,6 @@ const Dashboard: React.FC = () => {
       }
     }
 
-    // Se não for parcial, usa os widgets completos padrão
     switch (type) {
       case "resumo":
         return <ResumoWidget />;
@@ -159,16 +153,20 @@ const Dashboard: React.FC = () => {
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const widgetData = e.dataTransfer.getData("widget");
-    if (widgetData) {
-      handleWidgetDrop(JSON.parse(widgetData));
+    try {
+      const widgetData = e.dataTransfer.getData("widget");
+      if (widgetData) {
+        handleWidgetDrop(widgetData);
+      }
+    } catch (error) {
+      console.error("Erro ao processar o drop:", error);
     }
   };
 
-  // Fixed function to properly call addWidget with the correct parameters
   const handleAddPartialWidget = (partial: WidgetPartial) => {
-    // Call addWidget with all parameters according to the DashboardContext
-    addWidget(partial.type, partial.title, partial.icon);
+    const widgetType = partial.type;
+    const widgetTitle = partial.title;
+    addWidget(widgetType, widgetTitle);
   };
 
   return (
@@ -178,7 +176,6 @@ const Dashboard: React.FC = () => {
       transition={{ duration: 0.5, delay: 0.2 }}
       className="bg-background rounded-lg p-4"
     >
-      {/* Barra de controle do dashboard */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2">
           {isEditMode && (
@@ -199,7 +196,6 @@ const Dashboard: React.FC = () => {
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Componentes específicos</DropdownMenuLabel>
                   
-                  {/* IR e DARF parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <Receipt className="h-4 w-4 mr-2" />
@@ -217,7 +213,6 @@ const Dashboard: React.FC = () => {
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   
-                  {/* Dividendos parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <PiggyBank className="h-4 w-4 mr-2" />
@@ -235,7 +230,6 @@ const Dashboard: React.FC = () => {
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   
-                  {/* Portfolio parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <Briefcase className="h-4 w-4 mr-2" />
@@ -253,7 +247,6 @@ const Dashboard: React.FC = () => {
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   
-                  {/* Histórico parciais */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <History className="h-4 w-4 mr-2" />
