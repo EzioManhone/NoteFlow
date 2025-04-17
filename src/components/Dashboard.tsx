@@ -165,8 +165,9 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Adicionar widget parcial - Corrigido para usar o icon do partial
+  // The issue is here - we need to update this function to match the context
   const handleAddPartialWidget = (partial: WidgetPartial) => {
+    // Call addWidget with the correct parameters according to the DashboardContext
     addWidget(partial.type, partial.title, partial.icon);
   };
 
@@ -189,11 +190,11 @@ const Dashboard: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56">
-                  <DropdownMenuItem onClick={() => addWidget("resumo")}>Dashboard Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget("ir")}>IR e DARF Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget("dividendos")}>Dividendos Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget("historico")}>Histórico Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget("portfolio")}>Portfólio Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("resumo", "Dashboard Completo")}>Dashboard Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("ir", "IR e DARF Completo")}>IR e DARF Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("dividendos", "Dividendos Completo")}>Dividendos Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("historico", "Histórico Completo")}>Histórico Completo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addWidget("portfolio", "Portfólio Completo")}>Portfólio Completo</DropdownMenuItem>
                   
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Componentes específicos</DropdownMenuLabel>
@@ -285,7 +286,7 @@ const Dashboard: React.FC = () => {
               </>
             ) : (
               <>
-                <Pencil className="h-4 w-4 mr-1" />
+                <Pencil className="h-4 w-4 mr-1" /> Editar
               </>
             )}
           </Button>

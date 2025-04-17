@@ -17,7 +17,7 @@ type DashboardContextType = {
   processPdfFile: (file: File) => Promise<void>;
   isProcessing: boolean;
   toggleEditMode: () => void;
-  addWidget: (widgetType: string) => void;
+  addWidget: (widgetType: string, customTitle?: string, customIcon?: React.ReactNode) => void;
   removeWidget: (widgetId: string) => void;
   updateWidgetPosition: (widgetId: string, position: { x: number, y: number }) => void;
   updateWidgetSize: (widgetId: string, size: { width: number, height: number }) => void;
