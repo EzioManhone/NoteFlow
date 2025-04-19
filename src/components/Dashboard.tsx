@@ -1,5 +1,5 @@
-import React from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import React, { useEffect } from "react";
 import DashboardWidget from "./DashboardWidget";
 import { motion } from "framer-motion";
 import { useDashboard } from "@/contexts/DashboardContext";
@@ -17,7 +17,8 @@ import {
   Receipt, 
   PiggyBank,
   History,
-  Briefcase
+  Briefcase,
+  LayoutDashboard
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -31,7 +32,6 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import EditableWidget from "./EditableWidget";
-import { WidgetConfig } from "@/models/dashboardTypes";
 
 interface WidgetPartial {
   id: string;
@@ -45,7 +45,6 @@ const Dashboard: React.FC = () => {
   const { 
     widgets, 
     activeTab, 
-    setActiveTab, 
     isEditMode, 
     toggleEditMode, 
     addWidget,
@@ -145,8 +144,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const visibleWidgets = widgets.filter(widget => widget.visible);
-
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -164,126 +161,12 @@ const Dashboard: React.FC = () => {
     addWidget(widgetType, widgetTitle, widgetIcon);
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className="bg-background rounded-lg p-4"
-    >
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex gap-2">
-          {isEditMode && (
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <PlusCircle className="h-4 w-4 mr-1" /> Adicionar Widget
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuItem onClick={() => addWidget("resumo", "Dashboard Completo")}>Dashboard Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget("ir", "IR e DARF Completo")}>IR e DARF Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget("dividendos", "Dividendos Completo")}>Dividendos Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget("historico", "Histórico Completo")}>Histórico Completo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addWidget("portfolio", "Portfólio Completo")}>Portfólio Completo</DropdownMenuItem>
-                  
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Componentes específicos</DropdownMenuLabel>
-                  
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <Receipt className="h-4 w-4 mr-2" />
-                      <span>IR e DARF</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="p-0">
-                      {widgetPartials.ir.map(partial => (
-                        <DropdownMenuItem 
-                          key={partial.id}
-                          onClick={() => handleAddPartialWidget(partial)}
-                        >
-                          {partial.title}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                  
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <PiggyBank className="h-4 w-4 mr-2" />
-                      <span>Dividendos</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="p-0">
-                      {widgetPartials.dividendos.map(partial => (
-                        <DropdownMenuItem 
-                          key={partial.id}
-                          onClick={() => handleAddPartialWidget(partial)}
-                        >
-                          {partial.title}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                  
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <Briefcase className="h-4 w-4 mr-2" />
-                      <span>Portfólio</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="p-0">
-                      {widgetPartials.portfolio.map(partial => (
-                        <DropdownMenuItem 
-                          key={partial.id}
-                          onClick={() => handleAddPartialWidget(partial)}
-                        >
-                          {partial.title}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                  
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <History className="h-4 w-4 mr-2" />
-                      <span>Histórico</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="p-0">
-                      {widgetPartials.historico.map(partial => (
-                        <DropdownMenuItem 
-                          key={partial.id}
-                          onClick={() => handleAddPartialWidget(partial)}
-                        >
-                          {partial.title}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Button variant="outline" size="sm" onClick={saveLayout}>
-                <Save className="h-4 w-4 mr-1" /> Salvar Layout
-              </Button>
-            </>
-          )}
-          
-          <Button variant={isEditMode ? "default" : "outline"} size="sm" onClick={toggleEditMode}>
-            {isEditMode ? (
-              <>
-                <XCircle className="h-4 w-4 mr-1" /> Sair da Edição
-              </>
-            ) : (
-              <>
-                <Pencil className="h-4 w-4 mr-1" /> Editar
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {isEditMode ? (
+  // Filter widgets by activeTab for content display
+  const getContentForTab = () => {
+    if (activeTab === "dashboard") {
+      return (
         <div 
-          className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[300px] relative"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[300px] relative"
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
@@ -297,35 +180,174 @@ const Dashboard: React.FC = () => {
             </EditableWidget>
           ))}
         </div>
-      ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex flex-wrap gap-2 mb-4 bg-transparent">
-            {visibleWidgets.map((widget) => (
-              <TabsTrigger 
-                key={widget.id} 
-                value={widget.id}
-                className="data-[state=active]:bg-accent data-[state=active]:text-primary"
-              >
-                <div className="flex items-center gap-2">
-                  {widget.icon}
-                  {widget.title}
-                </div>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+      );
+    }
+    
+    // For other tabs, render specific content
+    let specificContent;
+    
+    switch (activeTab) {
+      case "ir":
+        specificContent = <IRWidget />;
+        break;
+      case "dividendos":
+        specificContent = <DividendosWidget />;
+        break;
+      case "historico":
+        specificContent = <HistoricoWidget />;
+        break;
+      case "portfolio":
+        specificContent = <PortfolioWidget />;
+        break;
+      default:
+        specificContent = <ResumoWidget />;
+    }
+    
+    return (
+      <DashboardWidget 
+        title={activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} 
+        icon={getIconForTab(activeTab)}
+      >
+        {specificContent}
+      </DashboardWidget>
+    );
+  };
+  
+  const getIconForTab = (tab: string) => {
+    switch (tab) {
+      case "ir":
+        return <Receipt className="h-4 w-4" />;
+      case "dividendos":
+        return <PiggyBank className="h-4 w-4" />;
+      case "historico":
+        return <History className="h-4 w-4" />;
+      case "portfolio":
+        return <Briefcase className="h-4 w-4" />;
+      default:
+        return <LayoutDashboard className="h-4 w-4" />;
+    }
+  };
 
-          {visibleWidgets.map((widget) => (
-            <TabsContent key={widget.id} value={widget.id}>
-              <DashboardWidget
-                title={widget.title}
-                icon={widget.icon}
-              >
-                {renderWidgetContent(widget.type)}
-              </DashboardWidget>
-            </TabsContent>
-          ))}
-        </Tabs>
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+      className="bg-background rounded-lg p-4"
+    >
+      {activeTab === "dashboard" && (
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex gap-2">
+            {isEditMode && (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <PlusCircle className="h-4 w-4 mr-1" /> Adicionar Widget
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56">
+                    <DropdownMenuItem onClick={() => addWidget("resumo", "Dashboard Completo", <LayoutDashboard className="h-4 w-4 mr-1" />)}>Dashboard Completo</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addWidget("ir", "IR e DARF Completo", <Receipt className="h-4 w-4 mr-1" />)}>IR e DARF Completo</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addWidget("dividendos", "Dividendos Completo", <PiggyBank className="h-4 w-4 mr-1" />)}>Dividendos Completo</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addWidget("historico", "Histórico Completo", <History className="h-4 w-4 mr-1" />)}>Histórico Completo</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addWidget("portfolio", "Portfólio Completo", <Briefcase className="h-4 w-4 mr-1" />)}>Portfólio Completo</DropdownMenuItem>
+                    
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Componentes específicos</DropdownMenuLabel>
+                    
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Receipt className="h-4 w-4 mr-2" />
+                        <span>IR e DARF</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-0">
+                        {widgetPartials.ir.map(partial => (
+                          <DropdownMenuItem 
+                            key={partial.id}
+                            onClick={() => handleAddPartialWidget(partial)}
+                          >
+                            {partial.title}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <PiggyBank className="h-4 w-4 mr-2" />
+                        <span>Dividendos</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-0">
+                        {widgetPartials.dividendos.map(partial => (
+                          <DropdownMenuItem 
+                            key={partial.id}
+                            onClick={() => handleAddPartialWidget(partial)}
+                          >
+                            {partial.title}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Briefcase className="h-4 w-4 mr-2" />
+                        <span>Portfólio</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-0">
+                        {widgetPartials.portfolio.map(partial => (
+                          <DropdownMenuItem 
+                            key={partial.id}
+                            onClick={() => handleAddPartialWidget(partial)}
+                          >
+                            {partial.title}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <History className="h-4 w-4 mr-2" />
+                        <span>Histórico</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-0">
+                        {widgetPartials.historico.map(partial => (
+                          <DropdownMenuItem 
+                            key={partial.id}
+                            onClick={() => handleAddPartialWidget(partial)}
+                          >
+                            {partial.title}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <Button variant="outline" size="sm" onClick={saveLayout}>
+                  <Save className="h-4 w-4 mr-1" /> Salvar Layout
+                </Button>
+              </>
+            )}
+            
+            <Button variant={isEditMode ? "default" : "outline"} size="sm" onClick={toggleEditMode}>
+              {isEditMode ? (
+                <>
+                  <XCircle className="h-4 w-4 mr-1" /> Sair da Edição
+                </>
+              ) : (
+                <>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       )}
+
+      {getContentForTab()}
     </motion.div>
   );
 };

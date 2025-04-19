@@ -44,7 +44,7 @@ export const useDashboard = () => {
 // Provedor do contexto
 export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [dashboardData, setDashboardData] = useState<DashboardData>(initialDashboardData);
-  const [activeTab, setActiveTab] = useState("resumo");
+  const [activeTab, setActiveTab] = useState("dashboard");
   
   // Usar os hooks refatorados
   const widgetsManager = useDashboardWidgets(initialLayout);

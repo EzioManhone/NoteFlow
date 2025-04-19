@@ -8,7 +8,6 @@ import { toast } from "@/components/ui/use-toast";
 export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
   const [layout, setLayout] = useState<DashboardLayout>(initialLayout);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [gridPositions, setGridPositions] = useState<Record<string, { row: number, col: number }>>({});
 
   // Funções para gerenciar os widgets
   const toggleEditMode = useCallback(() => setIsEditMode(!isEditMode), [isEditMode]);
@@ -104,7 +103,7 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
     });
   }, []);
 
-  const handleWidgetDrop = useCallback((e: React.DragEvent<HTMLDivElement>, targetPosition?: { row: number, col: number }) => {
+  const handleWidgetDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     try {
       e.preventDefault();
       
@@ -122,8 +121,8 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         
-        // Calculate the position based on the grid
-        const position = targetPosition || {
+        // Calculate the position
+        const position = {
           x: Math.floor(x / 100) * 100,
           y: Math.floor(y / 100) * 100
         };
@@ -131,7 +130,7 @@ export const useDashboardWidgets = (initialLayout: DashboardLayout) => {
         console.log(`Moving widget ${widgetId} to position:`, position);
         
         // Update widget position
-        updateWidgetPosition(widgetId, { x: position.x, y: position.y });
+        updateWidgetPosition(widgetId, position);
         
         toast({
           title: "Widget movido",
