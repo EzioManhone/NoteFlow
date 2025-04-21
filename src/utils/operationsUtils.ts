@@ -1,92 +1,219 @@
 
-import { Operation } from "./pdfParsing";
+import { Operation, TipoAtivo } from "./pdfParsing";
 import { ativoExisteNaB3, corrigirNomeAtivo } from "@/services/stockService";
 
-// Cálculo de resultados DayTrade/SwingTrade
+// Cálculo de resultados DayTrade/SwingTrade com suporte à classificação por tipo
 export const calcularResultadosPorTipo = (operacoes: Operation[]): {
   resultadoDayTrade: number;
   resultadoSwingTrade: number;
+  resultadosPorTipo: Record<TipoAtivo, {dayTrade: number, swingTrade: number}>
 } => {
   const dayTrades = operacoes.filter(op => op.dayTrade);
   const swingTrades = operacoes.filter(op => !op.dayTrade);
+  
+  // Inicializa resultados por tipo
+  const resultadosPorTipo: Record<TipoAtivo, {dayTrade: number, swingTrade: number}> = {
+    acao: {dayTrade: 0, swingTrade: 0},
+    fii: {dayTrade: 0, swingTrade: 0},
+    etf: {dayTrade: 0, swingTrade: 0},
+    opcao: {dayTrade: 0, swingTrade: 0},
+    futuro: {dayTrade: 0, swingTrade: 0},
+    desconhecido: {dayTrade: 0, swingTrade: 0}
+  };
+  
+  // Calcula resultados de Day Trade
   let resultadoDayTrade = 0;
   const dayTradesPorAtivo: Record<string, Operation[]> = {};
+  
   dayTrades.forEach(op => {
     if (!dayTradesPorAtivo[op.ativo]) dayTradesPorAtivo[op.ativo] = [];
     dayTradesPorAtivo[op.ativo].push(op);
   });
-  Object.values(dayTradesPorAtivo).forEach(opsAtivo => {
+  
+  Object.entries(dayTradesPorAtivo).forEach(([ativo, opsAtivo]) => {
+    const tipoAtivo = opsAtivo[0]?.tipoAtivo || 'desconhecido';
     const compras = opsAtivo.filter(op => op.tipo === 'compra');
     const vendas = opsAtivo.filter(op => op.tipo === 'venda');
     const valorCompras = compras.reduce((acc, op) => acc + op.valor, 0);
     const valorVendas = vendas.reduce((acc, op) => acc + op.valor, 0);
-    resultadoDayTrade += valorVendas - valorCompras;
+    const resultadoAtivo = valorVendas - valorCompras;
+    
+    resultadoDayTrade += resultadoAtivo;
+    resultadosPorTipo[tipoAtivo].dayTrade += resultadoAtivo;
   });
+  
+  // Calcula resultados de Swing Trade
   let resultadoSwingTrade = 0;
-  const comprasSwing = swingTrades.filter(op => op.tipo === 'compra');
-  const vendasSwing = swingTrades.filter(op => op.tipo === 'venda');
-  const valorComprasSwing = comprasSwing.reduce((acc, op) => acc + op.valor, 0);
-  const valorVendasSwing = vendasSwing.reduce((acc, op) => acc + op.valor, 0);
-  resultadoSwingTrade = valorVendasSwing - valorComprasSwing;
+  const swingTradesPorTipo: Record<TipoAtivo, Operation[]> = {
+    acao: [],
+    fii: [],
+    etf: [],
+    opcao: [],
+    futuro: [],
+    desconhecido: []
+  };
+  
+  swingTrades.forEach(op => {
+    swingTradesPorTipo[op.tipoAtivo].push(op);
+  });
+  
+  Object.entries(swingTradesPorTipo).forEach(([tipo, ops]) => {
+    const tipoAtivo = tipo as TipoAtivo;
+    const compras = ops.filter(op => op.tipo === 'compra');
+    const vendas = ops.filter(op => op.tipo === 'venda');
+    const valorCompras = compras.reduce((acc, op) => acc + op.valor, 0);
+    const valorVendas = vendas.reduce((acc, op) => acc + op.valor, 0);
+    const resultadoTipo = valorVendas - valorCompras;
+    
+    resultadoSwingTrade += resultadoTipo;
+    resultadosPorTipo[tipoAtivo].swingTrade += resultadoTipo;
+  });
 
   return {
     resultadoDayTrade: parseFloat(resultadoDayTrade.toFixed(2)),
     resultadoSwingTrade: parseFloat(resultadoSwingTrade.toFixed(2)),
+    resultadosPorTipo
   };
 };
 
-// Cálculo de impostos
+// Cálculo de impostos com suporte à classificação por tipo
 export const calcularImpostos = (operacoes: Operation[]): { 
   dayTrade: number, 
   swingTrade: number,
-  prejuizoAcumulado: number 
+  prejuizoAcumulado: number,
+  impostosPorTipo: Record<TipoAtivo, {dayTrade: number, swingTrade: number}>
 } => {
   const operacoesPorData: Record<string, { dayTrade: Operation[], swingTrade: Operation[] }> = {};
+  
   operacoes.forEach(op => {
     if (!operacoesPorData[op.data])
       operacoesPorData[op.data] = { dayTrade: [], swingTrade: [] };
     if (op.dayTrade) operacoesPorData[op.data].dayTrade.push(op);
     else operacoesPorData[op.data].swingTrade.push(op);
   });
+  
+  // Inicializa resultados por tipo
+  const resultadosPorTipo: Record<TipoAtivo, {dayTrade: number, swingTrade: number}> = {
+    acao: {dayTrade: 0, swingTrade: 0},
+    fii: {dayTrade: 0, swingTrade: 0},
+    etf: {dayTrade: 0, swingTrade: 0},
+    opcao: {dayTrade: 0, swingTrade: 0},
+    futuro: {dayTrade: 0, swingTrade: 0},
+    desconhecido: {dayTrade: 0, swingTrade: 0}
+  };
+  
   let resultadoDayTrade = 0;
   let resultadoSwingTrade = 0;
+  
+  // Processa operações por data
   Object.entries(operacoesPorData).forEach(([_, ops]) => {
+    // Processa Day Trades
     if (ops.dayTrade.length > 0) {
       const byAtivo: Record<string, Operation[]> = {};
       ops.dayTrade.forEach(op => {
         if (!byAtivo[op.ativo]) byAtivo[op.ativo] = [];
         byAtivo[op.ativo].push(op);
       });
-      Object.values(byAtivo).forEach(opsAtivo => {
+      
+      Object.entries(byAtivo).forEach(([_, opsAtivo]) => {
+        const tipoAtivo = opsAtivo[0]?.tipoAtivo || 'desconhecido';
         const compras = opsAtivo.filter(op => op.tipo === 'compra');
         const vendas = opsAtivo.filter(op => op.tipo === 'venda');
         const valorCompras = compras.reduce((acc, op) => acc + op.valor, 0);
         const valorVendas = vendas.reduce((acc, op) => acc + op.valor, 0);
-        resultadoDayTrade += valorVendas - valorCompras;
+        const resultadoAtivo = valorVendas - valorCompras;
+        
+        resultadoDayTrade += resultadoAtivo;
+        resultadosPorTipo[tipoAtivo].dayTrade += resultadoAtivo;
       });
     }
+    
+    // Processa Swing Trades
     if (ops.swingTrade.length > 0) {
-      const compras = ops.swingTrade.filter(op => op.tipo === 'compra');
-      const vendas = ops.swingTrade.filter(op => op.tipo === 'venda');
-      const valorCompras = compras.reduce((acc, op) => acc + op.valor, 0);
-      const valorVendas = vendas.reduce((acc, op) => acc + op.valor, 0);
-      resultadoSwingTrade += valorVendas - valorCompras;
+      const swingPorTipo: Record<TipoAtivo, Operation[]> = {
+        acao: [],
+        fii: [],
+        etf: [],
+        opcao: [],
+        futuro: [],
+        desconhecido: []
+      };
+      
+      ops.swingTrade.forEach(op => {
+        swingPorTipo[op.tipoAtivo].push(op);
+      });
+      
+      Object.entries(swingPorTipo).forEach(([tipo, opsSwing]) => {
+        const tipoAtivo = tipo as TipoAtivo;
+        const compras = opsSwing.filter(op => op.tipo === 'compra');
+        const vendas = opsSwing.filter(op => op.tipo === 'venda');
+        const valorCompras = compras.reduce((acc, op) => acc + op.valor, 0);
+        const valorVendas = vendas.reduce((acc, op) => acc + op.valor, 0);
+        const resultadoTipo = valorVendas - valorCompras;
+        
+        resultadoSwingTrade += resultadoTipo;
+        resultadosPorTipo[tipoAtivo].swingTrade += resultadoTipo;
+      });
     }
   });
+  
+  // Calcula impostos com base nos resultados
   const prejuizoAcumulado = Math.max(0, -(resultadoDayTrade + resultadoSwingTrade) * 0.3);
-  const impostoDayTrade = Math.max(0, resultadoDayTrade * 0.20);
-  const impostoSwingTrade = Math.max(0, resultadoSwingTrade * 0.15);
+  
+  // Alíquotas diferentes por tipo de ativo
+  const impostosPorTipo: Record<TipoAtivo, {dayTrade: number, swingTrade: number}> = {
+    acao: {
+      dayTrade: Math.max(0, resultadosPorTipo.acao.dayTrade * 0.20),
+      swingTrade: Math.max(0, resultadosPorTipo.acao.swingTrade * 0.15)
+    },
+    fii: {
+      dayTrade: Math.max(0, resultadosPorTipo.fii.dayTrade * 0.20),
+      swingTrade: Math.max(0, resultadosPorTipo.fii.swingTrade * 0.20) // FIIs têm alíquota diferente
+    },
+    etf: {
+      dayTrade: Math.max(0, resultadosPorTipo.etf.dayTrade * 0.20),
+      swingTrade: Math.max(0, resultadosPorTipo.etf.swingTrade * 0.15)
+    },
+    opcao: {
+      dayTrade: Math.max(0, resultadosPorTipo.opcao.dayTrade * 0.20),
+      swingTrade: Math.max(0, resultadosPorTipo.opcao.swingTrade * 0.15)
+    },
+    futuro: {
+      dayTrade: Math.max(0, resultadosPorTipo.futuro.dayTrade * 0.20),
+      swingTrade: Math.max(0, resultadosPorTipo.futuro.swingTrade * 0.15)
+    },
+    desconhecido: {
+      dayTrade: Math.max(0, resultadosPorTipo.desconhecido.dayTrade * 0.20),
+      swingTrade: Math.max(0, resultadosPorTipo.desconhecido.swingTrade * 0.15)
+    }
+  };
+  
+  const impostoDayTrade = Object.values(impostosPorTipo).reduce((acc, i) => acc + i.dayTrade, 0);
+  const impostoSwingTrade = Object.values(impostosPorTipo).reduce((acc, i) => acc + i.swingTrade, 0);
 
   return {
     dayTrade: parseFloat(impostoDayTrade.toFixed(2)),
     swingTrade: parseFloat(impostoSwingTrade.toFixed(2)),
-    prejuizoAcumulado: parseFloat(prejuizoAcumulado.toFixed(2))
+    prejuizoAcumulado: parseFloat(prejuizoAcumulado.toFixed(2)),
+    impostosPorTipo
   };
 };
 
 // Extrair lista de ativos únicos das operações
-export const extrairAtivos = (operacoes: Operation[]): string[] => {
+export const extrairAtivos = (operacoes: Operation[]): { codigo: string, tipo: TipoAtivo }[] => {
   const operacoesValidas = operacoes.filter(op => op.emBlocoValido && ativoExisteNaB3(op.ativo));
-  const ativosCorrigidos = operacoesValidas.map(op => corrigirNomeAtivo(op.ativo));
-  return [...new Set(ativosCorrigidos)];
+  const ativosMapeados = operacoesValidas.map(op => ({ 
+    codigo: corrigirNomeAtivo(op.ativo), 
+    tipo: op.tipoAtivo 
+  }));
+  
+  // Remove duplicatas
+  const ativosUnicos: { codigo: string, tipo: TipoAtivo }[] = [];
+  ativosMapeados.forEach(ativo => {
+    if (!ativosUnicos.some(a => a.codigo === ativo.codigo)) {
+      ativosUnicos.push(ativo);
+    }
+  });
+  
+  return ativosUnicos;
 };

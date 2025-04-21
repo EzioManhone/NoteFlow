@@ -8,7 +8,7 @@ export * from "./operationsUtils";
 
 // Função principal que prepara dados simulada da nota de corretagem PDF
 import { extractPdfText } from "./pdfExtraction";
-import { extrairAtivosDoTexto, Operation } from "./pdfParsing";
+import { extrairAtivosDoTexto, Operation, TipoAtivo, determinarTipoAtivo } from "./pdfParsing";
 import { calcularResultadosPorTipo } from "./operationsUtils";
 import { getListaAtivosB3 } from "@/services/stockService";
 import { PdfExtractionResult } from "@/types/dashboardTypes";
@@ -21,6 +21,7 @@ export interface NotaCorretagem {
   operacoes: Operation[];
   resultadoDayTrade: number;
   resultadoSwingTrade: number;
+  resultadosPorTipo: Record<TipoAtivo, {dayTrade: number, swingTrade: number}>;
   mes: string;
   taxas: {
     corretagem: number;
@@ -32,6 +33,7 @@ export interface NotaCorretagem {
 
 export interface Dividendo {
   ativo: string;
+  tipoAtivo: TipoAtivo;
   data: string;
   valor: number;
   tipo: 'dividendo' | 'jcp' | 'rendimento';
@@ -45,26 +47,34 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
       const dataOperacao = hoje.toISOString().split('T')[0];
       const mesOperacao = hoje.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 
-      // NOVO: usar extração simulada do novo módulo
+      // Usar extração simulada do novo módulo
       const { text: textoExtraido, isImage, method: metodoExtracao } = await extractPdfText(file);
 
-      // NOVO: extrair blocos
+      // Extrair blocos com suporte a múltiplos tipos de ativos
       const { ativos, emBlocoValido, indicesBlocos } = extrairAtivosDoTexto(textoExtraido);
 
-      const ativosPossiveis = ativos.length > 0 ? ativos : getListaAtivosB3().slice(0, 3);
+      // Gerar operações simuladas
+      const ativosExtraidos = ativos.length > 0 ? ativos : getListaAtivosB3().slice(0, 3).map(a => ({ 
+        codigo: a, 
+        tipo: determinarTipoAtivo(a) 
+      }));
+      
       const numOperacoes = 3 + Math.floor(Math.random() * 6);
       const operacoes: Operation[] = [];
       const numDayTrades = 1 + Math.floor(Math.random() * 2);
 
+      // Gerar day trades
       for (let i = 0; i < numDayTrades; i++) {
-        const ativoIndex = Math.floor(Math.random() * ativosPossiveis.length);
-        const ativo = ativosPossiveis[ativoIndex];
+        const ativoIndex = Math.floor(Math.random() * ativosExtraidos.length);
+        const { codigo: ativo, tipo: tipoAtivo } = ativosExtraidos[ativoIndex];
         const quantidade = 100 * (1 + Math.floor(Math.random() * 5));
         const precoCompra = 10 + Math.random() * 90;
         const precoVenda = precoCompra * (1 + (Math.random() * 0.02 - 0.01));
+        
         operacoes.push({
           tipo: 'compra',
           ativo,
+          tipoAtivo,
           quantidade,
           preco: parseFloat(precoCompra.toFixed(2)),
           data: dataOperacao,
@@ -73,9 +83,11 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
           dayTrade: true,
           emBlocoValido
         });
+        
         operacoes.push({
           tipo: 'venda',
           ativo,
+          tipoAtivo,
           quantidade,
           preco: parseFloat(precoVenda.toFixed(2)),
           data: dataOperacao,
@@ -85,16 +97,20 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
           emBlocoValido
         });
       }
+      
+      // Gerar operações normais (swing trade)
       for (let i = 0; i < numOperacoes - (numDayTrades * 2); i++) {
-        const ativoIndex = Math.floor(Math.random() * ativosPossiveis.length);
-        const ativo = ativosPossiveis[ativoIndex];
+        const ativoIndex = Math.floor(Math.random() * ativosExtraidos.length);
+        const { codigo: ativo, tipo: tipoAtivo } = ativosExtraidos[ativoIndex];
         const tipo = Math.random() > 0.5 ? 'compra' : 'venda';
         const quantidade = 100 * (1 + Math.floor(Math.random() * 5));
         const preco = 10 + Math.random() * 90;
         const valor = quantidade * preco;
+        
         operacoes.push({
           tipo,
           ativo,
+          tipoAtivo,
           quantidade,
           preco: parseFloat(preco.toFixed(2)),
           data: dataOperacao,
@@ -104,8 +120,9 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
           emBlocoValido
         });
       }
+      
       const operacoesValidas = operacoes.filter(op => op.emBlocoValido);
-      const { resultadoDayTrade, resultadoSwingTrade } = calcularResultadosPorTipo(operacoesValidas);
+      const { resultadoDayTrade, resultadoSwingTrade, resultadosPorTipo } = calcularResultadosPorTipo(operacoesValidas);
       const valorTotal = operacoesValidas.reduce((acc, op) => acc + op.valor, 0);
       const corretagem = operacoesValidas.reduce((acc, op) => acc + op.corretagem, 0);
       const liquidacao = parseFloat((valorTotal * 0.00025).toFixed(2));
@@ -121,6 +138,7 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
         operacoes: operacoesValidas,
         resultadoDayTrade,
         resultadoSwingTrade,
+        resultadosPorTipo,
         mes: mesOperacao,
         taxas: {
           corretagem,
@@ -133,7 +151,15 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
       const extraInfo: PdfExtractionResult = {
         success: emBlocoValido && operacoesValidas.length > 0,
         method: metodoExtracao,
-        ativos: ativos,
+        ativos: ativos.map(a => a.codigo),
+        tiposAtivos: Object.entries(operacoesValidas.reduce((acc, op) => {
+          if (!acc[op.tipoAtivo]) acc[op.tipoAtivo] = 0;
+          acc[op.tipoAtivo]++;
+          return acc;
+        }, {} as Record<TipoAtivo, number>)).map(([tipo, qtd]) => ({ 
+          tipo: tipo as TipoAtivo, 
+          quantidade: qtd 
+        })),
         totalAtivos: operacoesValidas.length,
         blocoEncontrado: emBlocoValido,
         divergencias: (temDivergenciaValor || temDivergenciaQuantidade) ? {
@@ -144,9 +170,12 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
 
       // Log de precisão / divergências
       console.log(`[pdfParser] Ativos lidos: ${ativos.length} | Operações válidas: ${operacoesValidas.length}`);
+      console.log(`[pdfParser] Tipos de ativos detectados:`, extraInfo.tiposAtivos);
+      
       if (extraInfo.divergencias) {
         console.warn(`[pdfParser] Divergências detectadas`, extraInfo.divergencias);
       }
+      
       resolve({ notaCorretagem, extraInfo });
     }, 1500);
   });
