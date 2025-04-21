@@ -47,7 +47,7 @@ const FileUpload: React.FC = () => {
         setExtractionResult(null);
         
         try {
-          // Processar o arquivo usando a função do contexto
+          // Processar o arquivo usando a função do contexto e armazenar o resultado
           const result = await processPdfFile(file);
           setExtractionResult(result);
           

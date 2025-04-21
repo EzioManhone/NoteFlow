@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { DashboardData } from "@/models/dashboardTypes";
 import { parsePdfCorretagem, calcularImpostos, extrairAtivos, calcularResultadosPorTipo } from "@/utils/pdfParser";

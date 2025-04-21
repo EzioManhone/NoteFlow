@@ -1,10 +1,10 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { DashboardData, WidgetConfig, DashboardLayout } from "@/models/dashboardTypes";
 import { initialDashboardData, initialLayout } from "@/config/dashboardConfig";
 import { useDashboardWidgets } from "@/hooks/useDashboardWidgets";
 import { usePdfProcessor } from "@/hooks/usePdfProcessor";
 import { useCotacoes } from "@/hooks/useCotacoes";
+import { PdfExtractionResult } from "@/types/dashboardTypes";
 
 // Criar contexto
 type DashboardContextType = {
@@ -14,7 +14,7 @@ type DashboardContextType = {
   activeTab: string;
   isEditMode: boolean;
   setActiveTab: (tab: string) => void;
-  processPdfFile: (file: File) => Promise<void>;
+  processPdfFile: (file: File) => Promise<PdfExtractionResult>;
   isProcessing: boolean;
   toggleEditMode: () => void;
   addWidget: (widgetType: string, customTitle?: string, customIcon?: React.ReactNode) => void;
