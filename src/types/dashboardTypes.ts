@@ -14,3 +14,15 @@ export interface TabContent {
   icon: ReactNode;
   content: ReactNode;
 }
+
+export interface PdfExtractionResult {
+  success: boolean;
+  method: "text" | "ocr";
+  ativos: string[];
+  totalAtivos: number;
+  blocoEncontrado: boolean;
+  divergencias?: {
+    valorTotal?: boolean;
+    quantidadePapeis?: boolean;
+  };
+}

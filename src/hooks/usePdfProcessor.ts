@@ -4,6 +4,7 @@ import { DashboardData } from "@/models/dashboardTypes";
 import { parsePdfCorretagem, calcularImpostos, extrairAtivos, calcularResultadosPorTipo } from "@/utils/pdfParser";
 import { corrigirNomeAtivo } from "@/services/stockService";
 import { toast } from "@/components/ui/use-toast";
+import { PdfExtractionResult } from "@/types/dashboardTypes";
 
 export const usePdfProcessor = (
   dashboardData: DashboardData,
@@ -12,16 +13,16 @@ export const usePdfProcessor = (
 ) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const processPdfFile = useCallback(async (file: File) => {
+  const processPdfFile = useCallback(async (file: File): Promise<PdfExtractionResult> => {
     setIsProcessing(true);
     try {
       toast({
         title: "Processando nota de corretagem",
-        description: "Lendo e processando os dados do PDF...",
+        description: "Analisando o formato do PDF e extraindo dados...",
       });
       
-      // Processar o PDF
-      const notaCorretagem = await parsePdfCorretagem(file);
+      // Processar o PDF com a nova lógica aprimorada
+      const { notaCorretagem, extraInfo } = await parsePdfCorretagem(file);
       
       // Atualizar dashboard data
       setDashboardData(prev => {
@@ -31,20 +32,25 @@ export const usePdfProcessor = (
         // Extrair todas as operações
         const todasOperacoes = notasAtualizadas.flatMap(nota => nota.operacoes);
         
-        // Corrigir nomes de ativos nas operações
+        // Corrigir nomes de ativos nas operações, mas apenas os que foram encontrados nos blocos corretos
         todasOperacoes.forEach(op => {
-          op.ativo = corrigirNomeAtivo(op.ativo);
+          if (op.emBlocoValido) {
+            op.ativo = corrigirNomeAtivo(op.ativo);
+          }
         });
         
+        // Filtrar apenas operações validadas (em blocos corretos)
+        const operacoesValidas = todasOperacoes.filter(op => op.emBlocoValido);
+        
         // Calcular impostos com a lógica aprimorada
-        const impostos = calcularImpostos(todasOperacoes);
+        const impostos = calcularImpostos(operacoesValidas);
         
         // Extrair ativos
-        const ativos = extrairAtivos(todasOperacoes);
+        const ativos = extrairAtivos(operacoesValidas);
         
         // Calcular portfólio com lógica de Day Trade aprimorada
         const portfolio = ativos.map(ativo => {
-          const operacoesAtivo = todasOperacoes.filter(op => op.ativo === ativo);
+          const operacoesAtivo = operacoesValidas.filter(op => op.ativo === ativo);
           
           // Agrupar operações por data para identificar day trades
           const operacoesPorData: Record<string, any[]> = {};
@@ -136,15 +142,25 @@ export const usePdfProcessor = (
       
       toast({
         title: "Nota de corretagem processada",
-        description: `Nota ${notaCorretagem.numero} processada com sucesso!`,
+        description: `Nota ${notaCorretagem.numero} processada com ${extraInfo.ativos.length} ativos identificados.`,
       });
+      
+      return extraInfo;
     } catch (error) {
+      console.error("Erro ao processar PDF:", error);
       toast({
         title: "Erro ao processar PDF",
         description: "Não foi possível ler os dados do arquivo. Tente novamente.",
         variant: "destructive",
       });
-      console.error("Erro ao processar PDF:", error);
+      
+      return {
+        success: false,
+        method: "text",
+        ativos: [],
+        totalAtivos: 0,
+        blocoEncontrado: false
+      };
     } finally {
       setIsProcessing(false);
     }

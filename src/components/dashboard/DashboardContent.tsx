@@ -28,15 +28,25 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
-          {widgets.map((widget) => (
-            <EditableWidget
-              key={widget.id}
-              widget={widget}
-              onRemove={() => removeWidget(widget.id)}
-            >
-              {renderWidgetContent(widget.type)}
-            </EditableWidget>
-          ))}
+          {widgets.length === 0 ? (
+            <div className="col-span-3 flex items-center justify-center h-64 border-2 border-dashed rounded-lg border-gray-300 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Arraste widgets da barra lateral para começar a personalizar seu dashboard
+                </p>
+              </div>
+            </div>
+          ) : (
+            widgets.map((widget) => (
+              <EditableWidget
+                key={widget.id}
+                widget={widget}
+                onRemove={() => removeWidget(widget.id)}
+              >
+                {renderWidgetContent(widget.type)}
+              </EditableWidget>
+            ))
+          )}
         </div>
       );
     }

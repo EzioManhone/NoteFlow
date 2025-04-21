@@ -1,6 +1,7 @@
 
 import { toast } from "@/components/ui/use-toast";
 import { ativoExisteNaB3, getListaAtivosB3, corrigirNomeAtivo } from "@/services/stockService";
+import { PdfExtractionResult } from "@/types/dashboardTypes";
 
 // Tipos de dados para operações e ativos
 export interface Operation {
@@ -12,6 +13,7 @@ export interface Operation {
   valor: number;
   corretagem: number;
   dayTrade: boolean;
+  emBlocoValido: boolean; // Indicador se a operação foi encontrada em um bloco válido
 }
 
 export interface Dividendo {
@@ -38,13 +40,102 @@ export interface NotaCorretagem {
   };
 }
 
+// Define os blocos de texto a serem procurados para identificação correta de ativos
+const BLOCOS_VALIDOS = [
+  "NEGOCIAÇÃO",
+  "MERCADO",
+  "ESPECIFICAÇÃO DO TÍTULO",
+  "RESUMO DAS OPERAÇÕES",
+  "RESUMO DOS NEGÓCIOS",
+  "RESUMO FINANCEIRO",
+  "C/V",
+  "COMPRA/VENDA"
+];
+
+// Regex para validar códigos de ativos brasileiros
+const REGEX_ATIVOS_BR = /[A-Z]{4}[0-9]{1,2}/g;
+
+/**
+ * Verifica se um texto PDF parece ser um PDF de imagem (escaneado)
+ * que precisa de OCR ou se é um PDF de texto nativo
+ */
+const isPdfImage = (text: string): boolean => {
+  // Se o PDF tiver pouco texto ou nenhum bloco identificável, provavelmente é uma imagem
+  if (text.length < 100) return true;
+  
+  // Verifique se pelo menos um dos blocos esperados está presente
+  const temBlocosReconheciveis = BLOCOS_VALIDOS.some(bloco => 
+    text.toUpperCase().includes(bloco)
+  );
+  
+  return !temBlocosReconheciveis;
+};
+
+/**
+ * Extrai ativos de um texto, apenas dentro de blocos válidos
+ */
+const extrairAtivosDoTexto = (text: string): { 
+  ativos: string[], 
+  emBlocoValido: boolean,
+  indicesBlocos: number[]
+} => {
+  const textUpperCase = text.toUpperCase();
+  const ativos: string[] = [];
+  let emBlocoValido = false;
+  const indicesBlocos: number[] = [];
+  
+  // Encontrar índices de todos os blocos válidos no texto
+  BLOCOS_VALIDOS.forEach(bloco => {
+    let idx = textUpperCase.indexOf(bloco);
+    while (idx !== -1) {
+      indicesBlocos.push(idx);
+      idx = textUpperCase.indexOf(bloco, idx + 1);
+    }
+  });
+  
+  // Se não encontrou nenhum bloco válido, retorna vazio
+  if (indicesBlocos.length === 0) {
+    return { ativos: [], emBlocoValido: false, indicesBlocos: [] };
+  }
+  
+  // Ordenar índices para processar os blocos em ordem
+  indicesBlocos.sort((a, b) => a - b);
+  
+  // Para cada bloco, extrair texto até o próximo bloco ou fim do documento
+  for (let i = 0; i < indicesBlocos.length; i++) {
+    const inicio = indicesBlocos[i];
+    const fim = i < indicesBlocos.length - 1 ? indicesBlocos[i + 1] : textUpperCase.length;
+    
+    // Extrair subseção de texto para este bloco
+    const blocoTexto = textUpperCase.substring(inicio, fim);
+    
+    // Aplicar regex para encontrar ativos neste bloco
+    const matches = [...blocoTexto.matchAll(REGEX_ATIVOS_BR)];
+    
+    if (matches.length > 0) {
+      emBlocoValido = true;
+      matches.forEach(match => {
+        const ativo = match[0];
+        if (ativoExisteNaB3(ativo) && !ativos.includes(ativo)) {
+          ativos.push(ativo);
+        }
+      });
+    }
+  }
+  
+  return { ativos, emBlocoValido, indicesBlocos };
+};
+
 /**
  * Função para extrair dados de uma nota de corretagem em PDF
  * Esta é uma implementação simulada - em um ambiente real, 
  * você usaria uma biblioteca como pdf.js para extrair texto
  * e algoritmos mais avançados para parsing estruturado
  */
-export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> => {
+export const parsePdfCorretagem = async (file: File): Promise<{
+  notaCorretagem: NotaCorretagem, 
+  extraInfo: PdfExtractionResult
+}> => {
   // Simulação de processamento de PDF (em produção, usar biblioteca como pdf.js)
   return new Promise((resolve) => {
     // Simular tempo de processamento
@@ -57,8 +148,23 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
       const dataOperacao = hoje.toISOString().split('T')[0];
       const mesOperacao = hoje.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
       
-      // Lista de possíveis ativos para simulação - usando ativos reais da B3
-      const ativosPossiveis = getListaAtivosB3();
+      // Simulação de extração de texto do PDF
+      const textoExtraido = "NOTA DE CORRETAGEM MERCADO À VISTA CORRETORA XP INVESTIMENTOS NEGOCIAÇÃO DE VALORES MOBILIÁRIOS PETR4 100 VALE3 200 ITUB4 150 RESUMO DAS OPERAÇÕES RESUMO FINANCEIRO";
+      
+      // Verificar se é PDF de imagem ou texto nativo
+      const isImage = isPdfImage(textoExtraido);
+      const metodoExtracao = isImage ? "ocr" : "text";
+      
+      console.log(`Método de extração determinado: ${metodoExtracao}`);
+      
+      // Extrair ativos apenas de blocos válidos
+      const { ativos, emBlocoValido, indicesBlocos } = extrairAtivosDoTexto(textoExtraido);
+      
+      console.log("Blocos encontrados:", indicesBlocos.length > 0);
+      console.log("Ativos extraídos:", ativos);
+      
+      // Lista de possíveis ativos para simulação - usando os extraídos ou fallback
+      const ativosPossiveis = ativos.length > 0 ? ativos : getListaAtivosB3().slice(0, 3);
       
       // Gerar número aleatório entre 3 e 8 para determinar quantas operações serão geradas
       const numOperacoes = 3 + Math.floor(Math.random() * 6);
@@ -84,7 +190,8 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
           data: dataOperacao,
           valor: parseFloat((quantidade * precoCompra).toFixed(2)),
           corretagem: parseFloat((quantidade * precoCompra * 0.0025).toFixed(2)),
-          dayTrade: true
+          dayTrade: true,
+          emBlocoValido: emBlocoValido
         });
         
         // Operação de venda do mesmo ativo
@@ -96,7 +203,8 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
           data: dataOperacao,
           valor: parseFloat((quantidade * precoVenda).toFixed(2)),
           corretagem: parseFloat((quantidade * precoVenda * 0.0025).toFixed(2)),
-          dayTrade: true
+          dayTrade: true,
+          emBlocoValido: emBlocoValido
         });
       }
       
@@ -117,25 +225,33 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
           data: dataOperacao,
           valor: parseFloat(valor.toFixed(2)),
           corretagem: parseFloat((valor * 0.0025).toFixed(2)),
-          dayTrade: false
+          dayTrade: false,
+          emBlocoValido: emBlocoValido
         });
       }
       
-      // Calcular resultados de Day Trade e Swing Trade
-      const { resultadoDayTrade, resultadoSwingTrade } = calcularResultadosPorTipo(operacoes);
+      // Filtrar apenas operações em blocos válidos
+      const operacoesValidas = operacoes.filter(op => op.emBlocoValido);
+      
+      // Calcular resultados de Day Trade e Swing Trade apenas com operações válidas
+      const { resultadoDayTrade, resultadoSwingTrade } = calcularResultadosPorTipo(operacoesValidas);
       
       // Calcular taxas
-      const valorTotal = operacoes.reduce((acc, op) => acc + op.valor, 0);
-      const corretagem = operacoes.reduce((acc, op) => acc + op.corretagem, 0);
+      const valorTotal = operacoesValidas.reduce((acc, op) => acc + op.valor, 0);
+      const corretagem = operacoesValidas.reduce((acc, op) => acc + op.corretagem, 0);
       const liquidacao = parseFloat((valorTotal * 0.00025).toFixed(2));
       const registro = parseFloat((valorTotal * 0.00005).toFixed(2));
+      
+      // Simulação de divergências para verificação
+      const temDivergenciaValor = Math.random() > 0.8; // 20% de chance de divergência
+      const temDivergenciaQuantidade = Math.random() > 0.9; // 10% de chance de divergência
       
       const notaCorretagem: NotaCorretagem = {
         numero: numeroNota,
         data: dataOperacao,
         corretora: "XP Investimentos",
         valorTotal,
-        operacoes,
+        operacoes: operacoesValidas,
         resultadoDayTrade,
         resultadoSwingTrade,
         mes: mesOperacao,
@@ -147,8 +263,23 @@ export const parsePdfCorretagem = async (file: File): Promise<NotaCorretagem> =>
         }
       };
       
+      // Informações extras para UI
+      const extraInfo: PdfExtractionResult = {
+        success: emBlocoValido && operacoesValidas.length > 0,
+        method: metodoExtracao as "text" | "ocr",
+        ativos: ativos,
+        totalAtivos: operacoesValidas.length,
+        blocoEncontrado: emBlocoValido,
+        divergencias: (temDivergenciaValor || temDivergenciaQuantidade) ? {
+          valorTotal: temDivergenciaValor,
+          quantidadePapeis: temDivergenciaQuantidade
+        } : undefined
+      };
+      
       console.log("Nota de corretagem processada:", notaCorretagem);
-      resolve(notaCorretagem);
+      console.log("Informações extras:", extraInfo);
+      
+      resolve({ notaCorretagem, extraInfo });
     }, 1500); // Simular 1.5 segundos de processamento
   });
 };
@@ -296,7 +427,12 @@ export const calcularImpostos = (operacoes: Operation[]): {
 
 // Extrair lista de ativos únicos das operações
 export const extrairAtivos = (operacoes: Operation[]): string[] => {
+  // Filtrar apenas operações marcadas como em bloco válido e com ativos reconhecidos
+  const operacoesValidas = operacoes.filter(op => op.emBlocoValido && ativoExisteNaB3(op.ativo));
+  
   // Corrigir nomes de ativos antes de extrair lista única
-  const ativosCorrigidos = operacoes.map(op => corrigirNomeAtivo(op.ativo));
+  const ativosCorrigidos = operacoesValidas.map(op => corrigirNomeAtivo(op.ativo));
+  
+  // Retornar lista única de ativos
   return [...new Set(ativosCorrigidos)];
 };
