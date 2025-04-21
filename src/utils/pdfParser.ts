@@ -50,18 +50,19 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
       // Usar extração simulada do novo módulo
       const { text: textoExtraido, isImage, method: metodoExtracao } = await extractPdfText(file);
 
-      // Extrair blocos com suporte a múltiplos tipos de ativos
-      const { ativos, emBlocoValido, indicesBlocos } = extrairAtivosDoTexto(textoExtraido);
+    // Extrair blocos com suporte a múltiplos tipos de ativos
+const { ativos, emBlocoValido, indicesBlocos } = extrairAtivosDoTexto(textoExtraido);
 
-      // Gerar operações simuladas
-      const ativosExtraidos = ativos.length > 0 ? ativos : getListaAtivosB3().slice(0, 3).map(a => ({ 
-        codigo: a, 
-        tipo: determinarTipoAtivo(a) 
-      }));
-      
-      const numOperacoes = 3 + Math.floor(Math.random() * 6);
-      const operacoes: Operation[] = [];
-      const numDayTrades = 1 + Math.floor(Math.random() * 2);
+// Validação: impedir que o sistema invente ativos
+if (ativos.length === 0) {
+  throw new Error("Nenhum ativo encontrado no PDF! A nota pode estar ilegível ou o layout é diferente.");
+}
+
+const ativosExtraidos = ativos;
+
+const numOperacoes = 3 + Math.floor(Math.random() * 6);
+const operacoes: Operation[] = [];
+const numDayTrades = 1 + Math.floor(Math.random() * 2);
 
       // Gerar day trades
       for (let i = 0; i < numDayTrades; i++) {
