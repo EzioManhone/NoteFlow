@@ -199,7 +199,7 @@ export const calcularImpostos = (operacoes: Operation[]): {
   };
 };
 
-// Extrair lista de ativos únicos das operações
+// Extrair lista de ativos únicos das operações com seus tipos
 export const extrairAtivos = (operacoes: Operation[]): { codigo: string, tipo: TipoAtivo }[] => {
   const operacoesValidas = operacoes.filter(op => op.emBlocoValido && ativoExisteNaB3(op.ativo));
   const ativosMapeados = operacoesValidas.map(op => ({ 

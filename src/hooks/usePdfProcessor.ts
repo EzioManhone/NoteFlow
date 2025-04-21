@@ -1,10 +1,12 @@
 
 import { useState, useCallback } from "react";
 import { DashboardData } from "@/models/dashboardTypes";
-import { parsePdfCorretagem, calcularImpostos, extrairAtivos } from "@/utils/pdfParser";
+import { parsePdfCorretagem, NotaCorretagem } from "@/utils/pdfParser";
+import { calcularImpostos, extrairAtivos } from "@/utils/operationsUtils";
 import { corrigirNomeAtivo } from "@/services/stockService";
 import { toast } from "@/components/ui/use-toast";
 import { PdfExtractionResult } from "@/types/dashboardTypes";
+import { TipoAtivo } from "@/utils/pdfParsing";
 
 export const usePdfProcessor = (
   dashboardData: DashboardData,
@@ -32,7 +34,7 @@ export const usePdfProcessor = (
         // Extrair todas as operações
         const todasOperacoes = notasAtualizadas.flatMap(nota => nota.operacoes);
         
-        // Corrigir nomes de ativos nas operações, mas apenas os que foram encontrados nos blocos corretos
+        // Corrigir nomes de ativos nas operações, apenas os que estão em blocos válidos
         todasOperacoes.forEach(op => {
           if (op.emBlocoValido) {
             op.ativo = corrigirNomeAtivo(op.ativo);
@@ -45,12 +47,12 @@ export const usePdfProcessor = (
         // Calcular impostos com a lógica aprimorada
         const impostos = calcularImpostos(operacoesValidas);
         
-        // Extrair ativos
-        const ativos = extrairAtivos(operacoesValidas);
+        // Extrair ativos estruturados com tipo
+        const ativosComTipo = extrairAtivos(operacoesValidas);
         
         // Calcular portfólio com lógica de Day Trade aprimorada
-        const portfolio = ativos.map(ativo => {
-          const operacoesAtivo = operacoesValidas.filter(op => op.ativo === ativo);
+        const portfolio = ativosComTipo.map(ativo => {
+          const operacoesAtivo = operacoesValidas.filter(op => op.ativo === ativo.codigo);
           
           // Agrupar operações por data para identificar day trades
           const operacoesPorData: Record<string, any[]> = {};
@@ -110,7 +112,7 @@ export const usePdfProcessor = (
           const precoMedio = quantidade > 0 ? valorTotal / quantidade : 0;
           
           return {
-            ativo,
+            ativo: ativo.codigo,
             quantidade,
             precoMedio,
             valorTotal: quantidade * precoMedio
@@ -126,8 +128,13 @@ export const usePdfProcessor = (
         
         return {
           notasCorretagem: notasAtualizadas,
-          ativos,
-          impostos,
+          ativos: ativosComTipo,
+          impostos: {
+            dayTrade: impostos.dayTrade,
+            swingTrade: impostos.swingTrade,
+            prejuizoAcumulado: impostos.prejuizoAcumulado,
+            impostosPorTipo: impostos.impostosPorTipo
+          },
           resultadoMensal,
           dividendos: prev.dividendos, // Manter dividendos existentes
           portfolio,
@@ -150,7 +157,7 @@ export const usePdfProcessor = (
       console.error("Erro ao processar PDF:", error);
       toast({
         title: "Erro ao processar PDF",
-        description: "Não foi possível ler os dados do arquivo. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível ler os dados do arquivo. Tente novamente.",
         variant: "destructive",
       });
       

@@ -1,14 +1,16 @@
 
 import { Operation, NotaCorretagem, Dividendo } from "@/utils/pdfParser";
 import { Cotacao } from "@/services/stockService";
+import { TipoAtivo } from "@/utils/pdfParsing";
 
 export interface DashboardData {
   notasCorretagem: NotaCorretagem[];
-  ativos: string[];
+  ativos: { codigo: string; tipo: TipoAtivo }[];
   impostos: {
     dayTrade: number;
     swingTrade: number;
     prejuizoAcumulado: number;
+    impostosPorTipo?: Record<TipoAtivo, {dayTrade: number, swingTrade: number}>;
   };
   resultadoMensal: {
     dayTrade: number;

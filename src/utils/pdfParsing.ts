@@ -14,10 +14,12 @@ export const BLOCOS_VALIDOS = [
   "BOLSA DE VALORES",
 ];
 
-// Regex para diferentes tipos de ativos
-export const REGEX_ATIVOS_BR = /[A-Z]{4}[0-9]{1,2}/g;
-export const REGEX_OPCOES = /[A-Z]{4}[A-Z][0-9]{3}/g;
-export const REGEX_MINI_CONTRATOS = /WIN[A-Z][0-9]{2}|WDO[A-Z][0-9]{2}|IND[A-Z][0-9]{2}/g;
+// Regex para diferentes tipos de ativos com padrões mais precisos
+export const REGEX_ACOES = /[A-Z]{4}[3-4]/g;
+export const REGEX_FIIS = /[A-Z]{4}11(?![A-Z])/g; // FIIS terminam com 11
+export const REGEX_ETFS = /BOVA11|IVVB11|SMAL11|HASH11|ECOO11|BBSD11|XINA11/g; // ETFs específicos
+export const REGEX_OPCOES = /[A-Z]{4}[A-Z][0-9]{2}/g; // Opções seguem esse padrão
+export const REGEX_MINI_CONTRATOS = /WIN[FGHJKMNQUVXZ][0-9]{1,2}|WDO[FGHJKMNQUVXZ][0-9]{1,2}|IND[FGHJKMNQUVXZ][0-9]{1,2}/g;
 
 export type TipoAtivo = 'acao' | 'fii' | 'etf' | 'opcao' | 'futuro' | 'desconhecido';
 
@@ -34,17 +36,40 @@ export interface Operation {
   emBlocoValido: boolean;
 }
 
-// Determina o tipo de ativo com base no código
+// Determina o tipo de ativo com base no código e nos padrões refinados
 export const determinarTipoAtivo = (ativo: string): TipoAtivo => {
-  if (ativo.match(/^[A-Z]{4}11$/)) return 'fii';
-  if (ativo.match(/^BOVA11$|^IVVB11$|^SMAL11$/)) return 'etf';
-  if (ativo.match(/^[A-Z]{4}[A-Z][0-9]{3}$/)) return 'opcao';
-  if (ativo.match(/^WIN[A-Z][0-9]{2}$|^WDO[A-Z][0-9]{2}$|^IND[A-Z][0-9]{2}$/)) return 'futuro';
-  if (ativo.match(/^[A-Z]{4}[0-9]{1,2}$/)) return 'acao';
+  const ativoNormalizado = ativo.toUpperCase().trim();
+  
+  // FIIs terminados com 11 (exceto os ETFs que também terminam em 11)
+  if (ativoNormalizado.match(/^[A-Z]{4}11$/) && 
+      !["BOVA11", "IVVB11", "SMAL11", "HASH11", "ECOO11", "BBSD11", "XINA11"].includes(ativoNormalizado)) {
+    return 'fii';
+  }
+  
+  // ETFs específicos
+  if (["BOVA11", "IVVB11", "SMAL11", "HASH11", "ECOO11", "BBSD11", "XINA11"].includes(ativoNormalizado)) {
+    return 'etf';
+  }
+  
+  // Opções seguem padrão específico
+  if (ativoNormalizado.match(/^[A-Z]{4}[A-Z][0-9]{2}$/)) {
+    return 'opcao';
+  }
+  
+  // Mini Contratos
+  if (ativoNormalizado.match(/^WIN[FGHJKMNQUVXZ][0-9]{1,2}$|^WDO[FGHJKMNQUVXZ][0-9]{1,2}$|^IND[FGHJKMNQUVXZ][0-9]{1,2}$/)) {
+    return 'futuro';
+  }
+  
+  // Ações terminam com dígito 3 ou 4
+  if (ativoNormalizado.match(/^[A-Z]{4}[3-4]$/)) {
+    return 'acao';
+  }
+  
   return 'desconhecido';
 };
 
-// Extrai ativos de todos os tipos dentro de blocos válidos
+// Extrai ativos de todos os tipos dentro de blocos válidos com validação mais rigorosa
 export const extrairAtivosDoTexto = (text: string): { 
   ativos: Array<{codigo: string, tipo: TipoAtivo}>, 
   emBlocoValido: boolean, 
@@ -70,21 +95,27 @@ export const extrairAtivosDoTexto = (text: string): {
   
   indicesBlocos.sort((a, b) => a - b);
 
-  // Para cada bloco, extrai os ativos
+  // Para cada bloco, extrai os ativos usando os padrões refinados
   for (let i = 0; i < indicesBlocos.length; i++) {
     const inicio = indicesBlocos[i];
     const fim = i < indicesBlocos.length - 1 ? indicesBlocos[i + 1] : textUpperCase.length;
     const blocoTexto = textUpperCase.substring(inicio, fim);
     
-    // Extrai ativos regulares (ações, FIIs, ETFs)
-    const matchesAtivos = [...blocoTexto.matchAll(REGEX_ATIVOS_BR)];
+    // Extrai ações
+    const matchesAcoes = [...blocoTexto.matchAll(REGEX_ACOES)];
+    // Extrai FIIs
+    const matchesFIIs = [...blocoTexto.matchAll(REGEX_FIIS)];
+    // Extrai ETFs
+    const matchesETFs = [...blocoTexto.matchAll(REGEX_ETFS)];
     // Extrai opções
     const matchesOpcoes = [...blocoTexto.matchAll(REGEX_OPCOES)];
     // Extrai mini contratos
     const matchesMini = [...blocoTexto.matchAll(REGEX_MINI_CONTRATOS)];
     
     const todosMatches = [
-      ...matchesAtivos.map(m => ({ match: m[0], tipo: determinarTipoAtivo(m[0]) })),
+      ...matchesAcoes.map(m => ({ match: m[0], tipo: 'acao' as TipoAtivo })),
+      ...matchesFIIs.map(m => ({ match: m[0], tipo: 'fii' as TipoAtivo })),
+      ...matchesETFs.map(m => ({ match: m[0], tipo: 'etf' as TipoAtivo })),
       ...matchesOpcoes.map(m => ({ match: m[0], tipo: 'opcao' as TipoAtivo })),
       ...matchesMini.map(m => ({ match: m[0], tipo: 'futuro' as TipoAtivo }))
     ];
@@ -95,13 +126,15 @@ export const extrairAtivosDoTexto = (text: string): {
         const ativo = match.match;
         const tipo = match.tipo;
         
-        // Verifica se o ativo existe na B3 e não está duplicado
+        // Verificação rigorosa se o ativo existe na B3 e não está duplicado
         if (ativoExisteNaB3(ativo) && !ativos.some(a => a.codigo === ativo)) {
           ativos.push({ codigo: ativo, tipo });
         }
       });
     }
   }
+  
+  console.log(`[pdfParsing] Ativos encontrados após validação: ${ativos.length}`, ativos);
   
   return { ativos, emBlocoValido, indicesBlocos };
 };
