@@ -2,7 +2,8 @@
 import { useState, useCallback } from "react";
 import { DashboardData } from "@/models/dashboardTypes";
 import { parsePdfCorretagem, NotaCorretagem } from "@/utils/pdfParser";
-import { calcularImpostos, extrairAtivos } from "@/utils/operationsUtils";
+import { calcularImpostos } from "@/utils/taxCalculations";
+import { extrairAtivos } from "@/utils/assetExtraction";
 import { corrigirNomeAtivo } from "@/services/stockService";
 import { toast } from "@/components/ui/use-toast";
 import { PdfExtractionResult } from "@/types/dashboardTypes";

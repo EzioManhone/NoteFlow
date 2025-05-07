@@ -4,12 +4,16 @@
  */
 export * from "./pdfExtraction";
 export * from "./pdfParsing";
-export * from "./operationsUtils";
+export * from "./tradeCalculations";
+export * from "./taxCalculations";
+export * from "./assetExtraction";
 
 // Função principal que prepara dados extraídos da nota de corretagem PDF
 import { extractPdfText, extrairOperacoesDetalhadas } from "./pdfExtraction";
 import { extrairAtivosDoTexto, Operation, TipoAtivo, converterParaOperations } from "./pdfParsing";
-import { calcularResultadosPorTipo, calcularImpostos, extrairAtivos } from "./operationsUtils";
+import { calcularResultadosPorTipo } from "./tradeCalculations";
+import { calcularImpostos } from "./taxCalculations";
+import { extrairAtivos } from "./assetExtraction";
 import { PdfExtractionResult } from "@/types/dashboardTypes";
 import { ativoExisteNaB3 } from "@/services/stockService";
 
