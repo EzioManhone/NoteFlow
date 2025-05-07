@@ -16,8 +16,8 @@ export const determinarTipoAtivo = (ativo: string): TipoAtivo => {
     return 'etf';
   }
   
-  // Options follow specific pattern (4 letters + letter + 2 or 3 numbers)
-  if (ativoNormalizado.match(/^[A-Z]{4}[A-Z][0-9]{2,3}$/)) {
+  // Options follow specific pattern - atualizados para incluir 5 letras
+  if (ativoNormalizado.match(/^[A-Z]{4,5}[A-Z0-9][0-9]{1,3}$/)) {
     return 'opcao';
   }
   

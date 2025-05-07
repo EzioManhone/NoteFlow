@@ -12,13 +12,22 @@ export const converterParaOperations = (
   const operations: Operation[] = [];
   
   for (const op of operacoesExtraidas) {
-    // Validate if asset exists in B3
+    // Validação menos rígida: se o ativo não foi encontrado na B3, usar tipo desconhecido mas não ignorar
+    let tipoAtivo = determinarTipoAtivo(op.codigo);
+    let ignorar = false;
+    
     if (!ativoExisteNaB3(op.codigo)) {
-      console.warn(`[pdfParsing] Asset ${op.codigo} not found in B3 list - ignored`);
-      continue;
+      console.warn(`[pdfParsing] Ativo ${op.codigo} não encontrado na lista B3 - usando como desconhecido`);
+      // Em vez de ignorar por completo, marcamos como um tipo desconhecido
+      tipoAtivo = 'desconhecido';
+      
+      // Para opções específicas, podemos usar o tipo opcao mesmo sem estar na B3
+      if (op.codigo.match(/^[A-Z]{4,5}[A-Z0-9][0-9]{1,3}$/)) {
+        tipoAtivo = 'opcao';
+        console.log(`[pdfParsing] Ativo ${op.codigo} identificado como opção mesmo sem estar na B3`);
+      }
     }
     
-    const tipoAtivo = determinarTipoAtivo(op.codigo);
     const tipoBaixado = op.tipo === 'COMPRA' ? 'compra' : 'venda';
     
     // Format date to ISO standard (YYYY-MM-DD)

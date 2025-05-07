@@ -1,4 +1,3 @@
-
 import { BLOCOS_VALIDOS } from "./pdfParsing";
 
 // Identifica se o PDF é imagem ou texto puro com verificação mais precisa
@@ -132,7 +131,7 @@ VALOR DAS OPERAÇÕES                      16.684,75
   };
 };
 
-// Nova função para extrair operações detalhadas baseada no código fornecido
+// Função aprimorada para extrair operações detalhadas
 export function extrairOperacoesDetalhadas(texto: string): ExtracaoOperacao[] {
   const operacoes: ExtracaoOperacao[] = [];
   const linhas = texto.split('\n').map(l => l.trim()).filter(l => l !== '');
@@ -144,6 +143,7 @@ export function extrairOperacoesDetalhadas(texto: string): ExtracaoOperacao[] {
   const regexQuantidadePrecoValor = /^([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/;
   const regexCodigoAcao = /([A-Z]{4}[3-4])/;
   const regexCodigoFII = /([A-Z]{4}11)(?![A-Z0-9])/;
+  const regexCodigoOpcao = /([A-Z]{4,5}[A-Z0-9][0-9]{1,3})(?![A-Z0-9])/; // Regex melhorado
   const regexCodigoMini = /(WIN[FGHJKMNQUVXZ][0-9]{1,2}|WDO[FGHJKMNQUVXZ][0-9]{1,2}|IND[FGHJKMNQUVXZ][0-9]{1,2})/;
 
   // Detectar a data da nota
@@ -156,27 +156,53 @@ export function extrairOperacoesDetalhadas(texto: string): ExtracaoOperacao[] {
       continue;
     }
     
-    // EXTRAÇÃO DE OPÇÕES (com a lógica do código fornecido)
-    if (linha.includes('OPCAO DE COMPRA') || linha.includes('OPCAO DE VENDA')) {
-      const tipo = linha.includes('COMPRA') ? 'COMPRA' : 'VENDA';
-      const codigoMatch = linha.match(/([A-Z]{4}[A-Z][0-9]{2,3})/);
+    // EXTRAÇÃO DE OPÇÕES (lógica aprimorada do código fornecido pelo usuário)
+    if (linha.includes('OPCAO DE COMPRA') || linha.includes('OPCAO DE VENDA') || 
+        linha.includes('OPÇÃO DE COMPRA') || linha.includes('OPÇÃO DE VENDA')) {
+      const tipo = (linha.includes('COMPRA')) ? 'COMPRA' : 'VENDA';
+      
+      // Padrão melhorado para encontrar códigos de opção
+      const codigoMatch = linha.match(/([A-Z]{4,5}[A-Z0-9][0-9]{1,3})/);
       const codigo = codigoMatch ? codigoMatch[1] : '';
       const ativoBase = codigo.slice(0, 4);
       
-      // Tenta encontrar o strike na linha seguinte
+      // Tenta encontrar o strike na linha seguinte (melhorado com suporte para diferentes formatos)
       const strikeMatch = linhas[i + 1]?.match(/([\d]{1,3}[,\.]\d{2})/);
       const strike = strikeMatch ? strikeMatch[1] : '';
       
-      // Procura valores nas próximas linhas (até 3 linhas à frente)
-      let valoresEncontrados = false;
+      // Melhorado para encontrar valores em vários formatos e com mais precisão
+      let encontrouValores = false;
       for (let j = 1; j <= 3; j++) {
         if (i + j >= linhas.length) break;
         
         const linhaValores = linhas[i + j];
-        const match = linhaValores.match(regexQuantidadePrecoValor);
         
+        // Regex específico para o formato diferente (suporte para o formato mencionado pelo usuário)
+        const formatoEspecifico = linhaValores.replace(/\s+/g, '').match(/^([\d.]+)(\d,\d{2})(\d{1,3},\d{2})[CD]$/);
+        if (formatoEspecifico) {
+          const quantidade = parseFloat(formatoEspecifico[1].replace(/\./g, '').replace(',', '.'));
+          const precoUnitario = parseFloat(formatoEspecifico[2].replace(',', '.'));
+          const valorTotal = parseFloat(formatoEspecifico[3].replace(/\./g, '').replace(',', '.'));
+          
+          operacoes.push({
+            data: dataNotaAtual,
+            tipo,
+            codigo,
+            ativoBase,
+            strike,
+            quantidade,
+            precoUnitario,
+            valorTotal
+          });
+          
+          encontrouValores = true;
+          break;
+        }
+        
+        // Tentativa com o formato padrão
+        const match = linhaValores.match(regexQuantidadePrecoValor);
         if (match) {
-          // Normaliza os formatos de número (remove pontos de milhar e converte vírgula para ponto)
+          // Normaliza os formatos de número
           const quantidade = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
           const precoUnitario = parseFloat(match[2].replace(/\./g, '').replace(',', '.'));
           const valorTotal = parseFloat(match[3].replace(/\./g, '').replace(',', '.'));
@@ -192,15 +218,15 @@ export function extrairOperacoesDetalhadas(texto: string): ExtracaoOperacao[] {
             valorTotal
           });
           
-          valoresEncontrados = true;
+          encontrouValores = true;
           break;
         }
       }
       
-      if (valoresEncontrados) continue;
+      if (encontrouValores) continue;
     }
     
-    // EXTRAÇÃO DE AÇÕES, FIIs E OUTROS
+    // EXTRAÇÃO DE AÇÕES, FIIs E OUTROS (mantidos da versão anterior)
     // Detectar padrões de mercado à vista
     if (linha.includes('C VISTA') || linha.includes('V VISTA') || 
         linha.startsWith('C ') || linha.startsWith('V ') || 
@@ -273,6 +299,14 @@ export function extrairOperacoesDetalhadas(texto: string): ExtracaoOperacao[] {
         }
       }
     }
+  }
+
+  // Log para debugging
+  if (operacoes.length > 0) {
+    console.log(`[pdfExtraction] Encontradas ${operacoes.length} operações do PDF:`, 
+      operacoes.map(op => `${op.tipo} ${op.codigo} (${op.ativoBase}) ${op.quantidade} x ${op.precoUnitario}`));
+  } else {
+    console.log("[pdfExtraction] Nenhuma operação encontrada no PDF");
   }
 
   return operacoes;
