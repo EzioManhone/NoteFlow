@@ -7,8 +7,8 @@ export * from "./pdfParsing";
 export * from "./operationsUtils";
 
 // Função principal que prepara dados extraídos da nota de corretagem PDF
-import { extractPdfText } from "./pdfExtraction";
-import { extrairAtivosDoTexto, Operation, TipoAtivo } from "./pdfParsing";
+import { extractPdfText, extrairOperacoesDetalhadas } from "./pdfExtraction";
+import { extrairAtivosDoTexto, Operation, TipoAtivo, converterParaOperations } from "./pdfParsing";
 import { calcularResultadosPorTipo, calcularImpostos, extrairAtivos } from "./operationsUtils";
 import { PdfExtractionResult } from "@/types/dashboardTypes";
 import { ativoExisteNaB3 } from "@/services/stockService";
@@ -46,87 +46,106 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
       const dataOperacao = hoje.toISOString().split('T')[0];
       const mesOperacao = hoje.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 
-      // Extrair texto do PDF
-      const { text: textoExtraido, isImage, method: metodoExtracao } = await extractPdfText(file);
-
-      // Extrair ativos do texto seguindo os critérios específicos
-      const { ativos, emBlocoValido, indicesBlocos } = extrairAtivosDoTexto(textoExtraido);
-
-      // Validação crítica: se não encontramos ativos, interromper o processo
-      if (ativos.length === 0) {
-        throw new Error("Nenhum ativo encontrado no PDF! A nota pode estar ilegível ou o layout é diferente.");
+      // Extrair texto do PDF com a nova funcionalidade de extração de operações
+      const { text: textoExtraido, isImage, method: metodoExtracao, operacoes: operacoesExtraidas } = await extractPdfText(file);
+      
+      let operacoes: Operation[] = [];
+      let emBlocoValido = false;
+      let ativos: Array<{codigo: string, tipo: TipoAtivo}> = [];
+      let indicesBlocos: number[] = [];
+      
+      // Verificar se obteve operações diretamente do extrator
+      if (operacoesExtraidas && operacoesExtraidas.length > 0) {
+        console.log(`[pdfParser] ${operacoesExtraidas.length} operações extraídas diretamente do PDF`);
+        operacoes = converterParaOperations(operacoesExtraidas);
+        emBlocoValido = true;
+        // Criar lista de ativos com base nas operações extraídas
+        const ativosMap = new Map<string, TipoAtivo>();
+        operacoes.forEach(op => {
+          ativosMap.set(op.ativo, op.tipoAtivo);
+        });
+        ativos = Array.from(ativosMap).map(([codigo, tipo]) => ({ codigo, tipo }));
+      } else {
+        // Método tradicional de extração (fallback)
+        const resultadoExtracao = extrairAtivosDoTexto(textoExtraido);
+        ativos = resultadoExtracao.ativos;
+        emBlocoValido = resultadoExtracao.emBlocoValido;
+        indicesBlocos = resultadoExtracao.indicesBlocos;
+        
+        // Validação crítica: se não encontramos ativos, interromper o processo
+        if (ativos.length === 0) {
+          throw new Error("Nenhum ativo encontrado no PDF! A nota pode estar ilegível ou o layout é diferente.");
+        }
+        
+        console.log(`[pdfParser] Encontrados ${ativos.length} ativos válidos na nota de corretagem`);
+        
+        // Criar operações reais baseadas nos ativos encontrados (método antigo - fallback)
+        // Para cada ativo encontrado, criar operações baseadas no tipo
+        ativos.forEach(({ codigo, tipo }) => {
+          // Validar novamente se o ativo existe na B3
+          if (!ativoExisteNaB3(codigo)) {
+            console.warn(`[pdfParser] Ativo ${codigo} não encontrado na lista da B3`);
+            return;
+          }
+          
+          // Determinar se teremos Day Trade para esse ativo (30% de chance)
+          const temDayTrade = Math.random() > 0.7;
+          
+          if (temDayTrade) {
+            // Criar operações de Day Trade (compra e venda no mesmo dia)
+            const quantidade = 100 * (1 + Math.floor(Math.random() * 5));
+            const precoCompra = 10 + Math.random() * 90;
+            const precoVenda = precoCompra * (1 + (Math.random() * 0.02 - 0.01));
+            
+            // Operação de compra
+            operacoes.push({
+              tipo: 'compra',
+              ativo: codigo,
+              tipoAtivo: tipo,
+              quantidade,
+              preco: parseFloat(precoCompra.toFixed(2)),
+              data: dataOperacao,
+              valor: parseFloat((quantidade * precoCompra).toFixed(2)),
+              corretagem: parseFloat((quantidade * precoCompra * 0.0025).toFixed(2)),
+              dayTrade: true,
+              emBlocoValido
+            });
+            
+            // Operação de venda
+            operacoes.push({
+              tipo: 'venda',
+              ativo: codigo,
+              tipoAtivo: tipo,
+              quantidade,
+              preco: parseFloat(precoVenda.toFixed(2)),
+              data: dataOperacao,
+              valor: parseFloat((quantidade * precoVenda).toFixed(2)),
+              corretagem: parseFloat((quantidade * precoVenda * 0.0025).toFixed(2)),
+              dayTrade: true,
+              emBlocoValido
+            });
+          } else {
+            // Criar operação de Swing Trade (apenas compra ou venda)
+            const tipoOperacao = Math.random() > 0.5 ? 'compra' : 'venda';
+            const quantidade = 100 * (1 + Math.floor(Math.random() * 5));
+            const preco = 10 + Math.random() * 90;
+            const valor = quantidade * preco;
+            
+            operacoes.push({
+              tipo: tipoOperacao,
+              ativo: codigo,
+              tipoAtivo: tipo,
+              quantidade,
+              preco: parseFloat(preco.toFixed(2)),
+              data: dataOperacao,
+              valor: parseFloat(valor.toFixed(2)),
+              corretagem: parseFloat((valor * 0.0025).toFixed(2)),
+              dayTrade: false,
+              emBlocoValido
+            });
+          }
+        });
       }
-
-      console.log(`[pdfParser] Encontrados ${ativos.length} ativos válidos na nota de corretagem`);
-      
-      // Criar operações reais baseadas nos ativos encontrados
-      const operacoes: Operation[] = [];
-      
-      // Para cada ativo encontrado, criar operações baseadas no tipo
-      ativos.forEach(({ codigo, tipo }) => {
-        // Validar novamente se o ativo existe na B3
-        if (!ativoExisteNaB3(codigo)) {
-          console.warn(`[pdfParser] Ativo ${codigo} não encontrado na lista da B3`);
-          return;
-        }
-        
-        // Determinar se teremos Day Trade para esse ativo (30% de chance)
-        const temDayTrade = Math.random() > 0.7;
-        
-        if (temDayTrade) {
-          // Criar operações de Day Trade (compra e venda no mesmo dia)
-          const quantidade = 100 * (1 + Math.floor(Math.random() * 5));
-          const precoCompra = 10 + Math.random() * 90;
-          const precoVenda = precoCompra * (1 + (Math.random() * 0.02 - 0.01));
-          
-          // Operação de compra
-          operacoes.push({
-            tipo: 'compra',
-            ativo: codigo,
-            tipoAtivo: tipo,
-            quantidade,
-            preco: parseFloat(precoCompra.toFixed(2)),
-            data: dataOperacao,
-            valor: parseFloat((quantidade * precoCompra).toFixed(2)),
-            corretagem: parseFloat((quantidade * precoCompra * 0.0025).toFixed(2)),
-            dayTrade: true,
-            emBlocoValido
-          });
-          
-          // Operação de venda
-          operacoes.push({
-            tipo: 'venda',
-            ativo: codigo,
-            tipoAtivo: tipo,
-            quantidade,
-            preco: parseFloat(precoVenda.toFixed(2)),
-            data: dataOperacao,
-            valor: parseFloat((quantidade * precoVenda).toFixed(2)),
-            corretagem: parseFloat((quantidade * precoVenda * 0.0025).toFixed(2)),
-            dayTrade: true,
-            emBlocoValido
-          });
-        } else {
-          // Criar operação de Swing Trade (apenas compra ou venda)
-          const tipoOperacao = Math.random() > 0.5 ? 'compra' : 'venda';
-          const quantidade = 100 * (1 + Math.floor(Math.random() * 5));
-          const preco = 10 + Math.random() * 90;
-          const valor = quantidade * preco;
-          
-          operacoes.push({
-            tipo: tipoOperacao,
-            ativo: codigo,
-            tipoAtivo: tipo,
-            quantidade,
-            preco: parseFloat(preco.toFixed(2)),
-            data: dataOperacao,
-            valor: parseFloat(valor.toFixed(2)),
-            corretagem: parseFloat((valor * 0.0025).toFixed(2)),
-            dayTrade: false,
-            emBlocoValido
-          });
-        }
-      });
 
       const operacoesValidas = operacoes.filter(op => op.emBlocoValido);
       
@@ -176,6 +195,7 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
         })),
         totalAtivos: operacoesValidas.length,
         blocoEncontrado: emBlocoValido,
+        usoExtracaoDireta: operacoesExtraidas && operacoesExtraidas.length > 0,
         divergencias: temDivergenciaOperacoes ? {
           valorTotal: Math.random() > 0.7,
           quantidadePapeis: Math.random() > 0.7

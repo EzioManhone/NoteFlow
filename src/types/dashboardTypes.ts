@@ -23,6 +23,7 @@ export interface PdfExtractionResult {
   tiposAtivos?: Array<{ tipo: TipoAtivo, quantidade: number }>;
   totalAtivos: number;
   blocoEncontrado: boolean;
+  usoExtracaoDireta?: boolean; // Indica se usou o método direto de extração
   divergencias?: {
     valorTotal?: boolean;
     quantidadePapeis?: boolean;

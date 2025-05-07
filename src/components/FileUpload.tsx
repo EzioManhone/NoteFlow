@@ -54,7 +54,11 @@ const FileUpload: React.FC = () => {
           if (result.success) {
             toast({
               title: "Nota de corretagem processada!",
-              description: `${result.totalAtivos} ativos identificados usando ${result.method === 'text' ? 'extração de texto' : 'OCR'}.`,
+              description: `${result.totalAtivos} ativos identificados usando ${
+                result.usoExtracaoDireta 
+                  ? "extração direta de operações" 
+                  : result.method === 'text' ? 'extração de texto' : 'OCR'
+              }.`,
             });
           } else {
             toast({
@@ -94,8 +98,9 @@ const FileUpload: React.FC = () => {
       <div className="mt-3 text-sm">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${extractionResult.success ? 'bg-green-500' : 'bg-amber-500'}`}></div>
-          <span>Método: {extractionResult.method === 'text' ? 'Extração de Texto' : 'OCR'}</span>
+          <span>Método: {extractionResult.usoExtracaoDireta ? 'Extração Direta' : (extractionResult.method === 'text' ? 'Extração de Texto' : 'OCR')}</span>
         </div>
+        
         {extractionResult.blocoEncontrado ? (
           <div className="flex items-center gap-2 text-green-600">
             <Check className="h-4 w-4" />
@@ -107,9 +112,29 @@ const FileUpload: React.FC = () => {
             <span>Blocos de negociação não encontrados</span>
           </div>
         )}
+        
         <div>Ativos identificados: {extractionResult.totalAtivos}</div>
+        
+        {extractionResult.tiposAtivos && extractionResult.tiposAtivos.length > 0 && (
+          <div className="text-xs mt-1">
+            <span className="font-medium">Tipos detectados:</span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {extractionResult.tiposAtivos.map(tipo => (
+                <span key={tipo.tipo} className="px-1.5 py-0.5 bg-primary/10 rounded text-primary text-[10px]">
+                  {tipo.tipo === 'acao' ? 'Ações' : 
+                   tipo.tipo === 'fii' ? 'FIIs' : 
+                   tipo.tipo === 'etf' ? 'ETFs' : 
+                   tipo.tipo === 'opcao' ? 'Opções' : 
+                   tipo.tipo === 'futuro' ? 'Futuros' : 'Outros'}
+                  : {tipo.quantidade}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        
         {extractionResult.divergencias && (
-          <div className="text-amber-600">
+          <div className="text-amber-600 mt-1">
             {extractionResult.divergencias.valorTotal && <div>⚠️ Divergência no valor total</div>}
             {extractionResult.divergencias.quantidadePapeis && <div>⚠️ Divergência na quantidade de papéis</div>}
           </div>
