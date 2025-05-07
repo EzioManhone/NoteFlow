@@ -1,10 +1,9 @@
 
 import { Operation, TipoAtivo } from "./types";
-import { ativoExisteNaB3 } from "@/services/stockService";
 import { determinarTipoAtivo } from "./assetTypeDetermination";
 import { ExtracaoOperacao } from "../pdfExtraction";
 
-// Converts extracted operations directly to Operation format
+// Converts extracted operations directly to Operation format without B3 validation
 export const converterParaOperations = (
   operacoesExtraidas: ExtracaoOperacao[], 
   corretora: string = "XP Investimentos"
@@ -12,21 +11,8 @@ export const converterParaOperations = (
   const operations: Operation[] = [];
   
   for (const op of operacoesExtraidas) {
-    // Validação menos rígida: se o ativo não foi encontrado na B3, usar tipo desconhecido mas não ignorar
+    // Determinar o tipo do ativo sem validação B3
     let tipoAtivo = determinarTipoAtivo(op.codigo);
-    let ignorar = false;
-    
-    if (!ativoExisteNaB3(op.codigo)) {
-      console.warn(`[pdfParsing] Ativo ${op.codigo} não encontrado na lista B3 - usando como desconhecido`);
-      // Em vez de ignorar por completo, marcamos como um tipo desconhecido
-      tipoAtivo = 'desconhecido';
-      
-      // Para opções específicas, podemos usar o tipo opcao mesmo sem estar na B3
-      if (op.codigo.match(/^[A-Z]{4,5}[A-Z0-9][0-9]{1,3}$/)) {
-        tipoAtivo = 'opcao';
-        console.log(`[pdfParsing] Ativo ${op.codigo} identificado como opção mesmo sem estar na B3`);
-      }
-    }
     
     const tipoBaixado = op.tipo === 'COMPRA' ? 'compra' : 'venda';
     

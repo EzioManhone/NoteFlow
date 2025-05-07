@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { DashboardData } from "@/models/dashboardTypes";
 import { parsePdfCorretagem, NotaCorretagem } from "@/utils/pdfParser";
@@ -48,7 +47,7 @@ export const usePdfProcessor = (
         // Calcular impostos com a lógica aprimorada
         const impostos = calcularImpostos(operacoesValidas);
         
-        // Extrair ativos estruturados com tipo
+        // Extrair ativos estruturados com tipo sem depender da validação B3
         const ativosComTipo = extrairAtivos(operacoesValidas);
         
         // Calcular portfólio com lógica de Day Trade aprimorada

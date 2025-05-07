@@ -1,4 +1,3 @@
-
 /**
  * Barrel file: exporta utilitários específicos do parser de PDFs financeiros.
  */
@@ -86,11 +85,7 @@ export const parsePdfCorretagem = async (file: File): Promise<{ notaCorretagem: 
         // Criar operações reais baseadas nos ativos encontrados (método antigo - fallback)
         // Para cada ativo encontrado, criar operações baseadas no tipo
         ativos.forEach(({ codigo, tipo }) => {
-          // Validar novamente se o ativo existe na B3
-          if (!ativoExisteNaB3(codigo)) {
-            console.warn(`[pdfParser] Ativo ${codigo} não encontrado na lista da B3`);
-            return;
-          }
+          // Removida validação B3 aqui
           
           // Determinar se teremos Day Trade para esse ativo (30% de chance)
           const temDayTrade = Math.random() > 0.7;

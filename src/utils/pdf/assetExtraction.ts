@@ -3,7 +3,7 @@ import { TipoAtivo } from "./types";
 import { ativoExisteNaB3 } from "@/services/stockService";
 import { BLOCOS_VALIDOS, REGEX_ACOES, REGEX_FIIS, REGEX_ETFS, REGEX_OPCOES, REGEX_MINI_CONTRATOS } from "./constants";
 
-// Extracts assets of all types within valid blocks with stricter validation
+// Extracts assets of all types within valid blocks with more permissive validation
 export const extrairAtivosDoTexto = (text: string): { 
   ativos: Array<{codigo: string, tipo: TipoAtivo}>, 
   emBlocoValido: boolean, 
@@ -60,15 +60,15 @@ export const extrairAtivosDoTexto = (text: string): {
         const ativo = match.match;
         const tipo = match.tipo;
         
-        // Strict verification if the asset exists in B3 and is not duplicated
-        if (ativoExisteNaB3(ativo) && !ativos.some(a => a.codigo === ativo)) {
+        // Remove a verificação com B3 e aceita todos os ativos que não sejam duplicados
+        if (!ativos.some(a => a.codigo === ativo)) {
           ativos.push({ codigo: ativo, tipo });
         }
       });
     }
   }
   
-  console.log(`[pdfParsing] Assets found after validation: ${ativos.length}`, ativos);
+  console.log(`[pdfParsing] Assets found after permissive validation: ${ativos.length}`, ativos);
   
   return { ativos, emBlocoValido, indicesBlocos };
 };
